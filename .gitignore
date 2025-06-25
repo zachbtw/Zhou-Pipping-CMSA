@@ -4,6 +4,6 @@
 .Ruserdata
 nfl-big-data-bowl-2025/
 nfl-big-data-bowl-2025.zip
-.gif
-.csv
-.parquet
+*.gif
+*.csv
+*.parquet
