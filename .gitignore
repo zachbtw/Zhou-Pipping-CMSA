@@ -7,3 +7,4 @@ nfl-big-data-bowl-2025.zip
 *.gif
 *.csv
 *.parquet
+.DS_Store
