@@ -13,5 +13,28 @@ tracking <- games |>
   left_join(tracking, by = "gameId")
   
 
-tracking_w1 <- tracking |> 
-  filter(week == 1)
+sample_game <- 2022091100
+sample_play <- 14
+
+passing_plays <- 
+  plays |>
+  select(gameId, playId, passResult) |>
+  left_join(tracking, by = c("gameId", "playId")) |>
+  filter(passResult %in% c("C", "I", "IN"))
+
+# dim(as.data.table(passing_plays))
+# tracking_oneplay <- 
+#   players |>
+#   select(nflId, position) |>
+#   left_join(tracking, by = "nflId") |>
+#   filter(gameId == 2022091100, playId == 301, position == "TE")
+
+view(tracking_oneplay)
+
+tracking_oneplay <- tracking_oneplay |>
+  mutate(side = ifelse(club == "NO", "offense", "defense")) |>
+  mutate(dist_nearest_def = )
+
+
+
+
