@@ -32,7 +32,8 @@ get_closest_opponent <- function(tracking) {
 }
 
 get_motion_difference <- function(tracking) {
-  tracking_cleaned <- tracking |> select(nflId, x, y, s_x, s_y, closestOpponentId)
+  tracking_cleaned <- tracking |> select(nflId, x, y, s_x, s_y, closestOpponentId, club) |>
+    filter(club != "football")
   
   # Separate player info and opponent info
   player_info <- tracking_cleaned
@@ -44,7 +45,12 @@ get_motion_difference <- function(tracking) {
       opp_s_x = s_x,
       opp_s_y = s_y
     )
-  
+  test <- player_info |>
+    count(nflId, closestOpponentId) |>
+    filter(n > 1)
+  if(nrow(test) > 0){
+    print(tracking)
+  }
   combined <- player_info |> 
     left_join(opponent_info, by = "closestOpponentId") |>
     mutate(
@@ -62,7 +68,16 @@ main <- function(){
   games <- lazy_dt(read.csv("nfl-big-data-bowl-2025/games.csv"))
   players <- lazy_dt(read.csv("nfl-big-data-bowl-2025/players.csv"))
   #left to right cleaning
-  tracking <- tracking |>
+  
+  sample_game = 2022091200
+  sample_play = 64
+  #get positions and throwing frames
+  positions <- players |> select(nflId, position)
+  throws <- plays |> filter(passResult %in% c("C", "I", "IN"))
+  passing_frames <- tracking |> filter(event == "pass_forward")
+  receiver <- player_play |> filter(wasTargettedReceiver == 1) |> 
+    select(gameId, playId, nflId) |> rename(targeted_receiver = nflId)
+  passing_frames <- passing_frames |>
     mutate(
       # make all plays go from left to right
       x = ifelse(playDirection == "left", 120 - x, x),
@@ -72,30 +87,21 @@ main <- function(){
       dir = ifelse(dir > 360, dir - 360, dir),
       o = ifelse(playDirection == "left", o + 180, o),
       o = ifelse(o > 360, o - 360, o),
-      o_rad = pi * (o / 180),
-      o_x = ifelse(is.na(o), NA_real_, sin(o_rad)),
-      o_y = ifelse(is.na(o), NA_real_, cos(o_rad)),
+      dir_rad = pi * (dir / 180),
+      dir_x = ifelse(is.na(dir), NA_real_, sin(dir_rad)),
+      dir_y = ifelse(is.na(dir), NA_real_, cos(dir_rad)),
       s_x = dir_x * s,
       s_y = dir_y * s,
       a_x = dir_x * a,
       a_y = dir_y * a
     )
-  sample_game = 2022091200
-  sample_play = 64
-  #get positions and throwing frames
-  positions <- players |> select(nflId, position)
-  throws <- plays |> filter(passResult %in% c("C", "I", "IN"))
-  passing_frames <- tracking |> filter(event == "pass_forward")
-  receiver <- player_play |> filter(wasTargettedReceiver == 1) |> 
-    select(gameId, playId, nflId) |> rename(targeted_receiver = nflId)
-  
   passing_frames <- passing_frames |>
     merge(receiver, by  = c("gameId", "playId"))
   
-  #find closest opponent for each player
+  #find closest opponent for each player - have to include frameId for multiple throw plays
   closest <- passing_frames |>
     as_tibble() |>
-    group_by(gameId, playId) |>
+    group_by(gameId, playId, frameId) |>
     group_split() |>
     pblapply(function(df) {
       get_closest_opponent(df)
@@ -104,10 +110,23 @@ main <- function(){
   
   #get motion difference for the closest opponent
   closest <- closest |>
-    group_by(gameId, playId) |>
+    group_by(gameId, playId, frameId) |>
     group_split() |>
     pblapply(function(df) {
       get_motion_difference(df)
     }) |> bind_rows()
+  
+  closest |> inner_join(positions |> as_tibble(), by = "nflId") |>
+    filter(position %in% c("TE", "RB", "WR", "FB")) |> group_by(gameId, playId, frameId) |>
+    summarise(
+      top = nflId[which.max(motion_diff)],
+      actual_receiver = first(actual_receiver),  # adjust if you need to compute or fetch this differently
+      is_top_receiver = (top == actual_receiver),
+      .groups = "drop"
+    )
 }
 main()
+gameId_t = 2022103002
+playId_t = 1263
+closest |> filter(gameId == gameId_t, playId == playId_t, nflId == 54633) |>
+  count(nflId)
