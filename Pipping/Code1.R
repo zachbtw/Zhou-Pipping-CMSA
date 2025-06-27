@@ -63,7 +63,7 @@ plays_sub <- plays |>
   select(game_play, pff_manZone)
 
 names(plays)
-table(plays$pff_manZone)
+table(plays$pff_manZone) 
 
 joint <- left_join(tracking_1_4, plays_sub, by = "game_play")
 
