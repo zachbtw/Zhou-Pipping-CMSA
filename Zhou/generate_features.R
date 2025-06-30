@@ -118,12 +118,8 @@ main <- function(){
   
   closest |> inner_join(positions |> as_tibble(), by = "nflId") |>
     filter(position %in% c("TE", "RB", "WR", "FB")) |> group_by(gameId, playId, frameId) |>
-    summarise(
-      top = nflId[which.max(motion_diff)],
-      actual_receiver = first(actual_receiver),  # adjust if you need to compute or fetch this differently
-      is_top_receiver = (top == actual_receiver),
-      .groups = "drop"
-    )
+    slice_max(motion_diff, n = 1, with_ties = FALSE) |> ungroup() |>
+    mutate(threw_to_diff = nflId == targeted_receiver) |> count(threw_to_diff)
 }
 main()
 gameId_t = 2022103002

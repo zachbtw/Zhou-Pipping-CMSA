@@ -11,47 +11,47 @@ format:
 ---
 
 ## Motivation
-::: fragment
-- Determining who the likely recipient can be key in making the optimal decision for the defene as well as evaluating the decision-making of a quarterback
 
-  - Rewarding quarterbacks for finding uncommon but high-value passes
-  - For a defense, determining likely throw target for appropriate positioning
-  
+::: fragment
+-   Determining who the likely recipient can be key in making the optimal decision for the defense as well as evaluating the decision-making of a quarterback
+
+    -   Rewarding quarterbacks for finding uncommon but high-value passes
+    -   For a defense, determining likely throw target for appropriate positioning
 :::
 
 ::: fragment
-- Look to build a ranking model which determines the most likely receiver at a frame given throw attempt
-
+-   Look to build a ranking model which determines the most likely receiver at a frame given throw attempt
 :::
+
 ## Data Overview {.smaller}
-::: columns
-::: {.column width="50%"}
 
-- **2025 NFL Big Data Bowl – Weeks 1–9**
-
-::: fragment
-- **Game Data** – Home and Away Team, Final Score, Game Time
-:::
+::::::::: columns
+::::::: {.column width="50%"}
+-   **2025 NFL Big Data Bowl – Weeks 1–9**
 
 ::: fragment
-- **Play Data** – Play Description, Game Context, Play Result, Changes in Win Probability
+-   **Game Data** – Home and Away Team, Final Score, Game Time
 :::
 
 ::: fragment
-- **Player Play Data** – Statistics for each player for a play  
-  - Route ran by player, Whether the player made a tackle or interception
+-   **Play Data** – Play Description, Game Context, Play Result, Changes in Win Probability
 :::
 
 ::: fragment
-- **Tracking Data** - Locations of players and the football at each frame of a play
+-   **Player Play Data** – Statistics for each player for a play
+    -   Route ran by player, Whether the player made a tackle or interception
 :::
 
+::: fragment
+-   **Tracking Data** - Locations of players and the football at each frame of a play
 :::
+:::::::
 
 ::: {.column width="50%"}
 ![](highWP.gif)
 :::
-:::::
+:::::::::
+
 ## Spacing Tells an Incomplete Story
 
 ![](testing.gif)
@@ -59,33 +59,27 @@ format:
 ## Methodology
 
 ::: fragment
-
-- Building a ranking algorithm(e.g. [XGBoost](https://cran.r-project.org/web/packages/xgboost/xgboost.pdf)) to rank the likeliest recipient at a frame
-  - Similar approaches in soccer[^1] 
-  - Extracting features from tracking and play-by-play data
-  
+-   Building a ranking algorithm(e.g. [XGBoost](https://cran.r-project.org/web/packages/xgboost/xgboost.pdf)) to rank the likeliest recipient at a frame
+    -   Similar approaches in soccer[^1]
+    -   Extracting features from tracking and play-by-play data
+:::
 
 [^1]: Li, H., Zhang, Z. (2019). Predicting the Receivers of Football Passes. In: Brefeld, U., Davis, J., Van Haaren, J., Zimmermann, A. (eds) Machine Learning and Data Mining for Sports Analytics.
 
-:::
-
 ::: fragment
-- Potential pre-snap work, predicting the most likely target given the receiver alignments
-
+-   Potential pre-snap work, predicting the most likely target given the receiver alignments
 :::
-
 
 ## Next Steps
+
 ::: fragment
-- Extracting features used to build the ranking model
-  - Distance, Relative Speed, Relative Orientation From Nearest Defender
-  - Quarterback Position, If Under Pressure
-  - Number of Defenders between Quarterback and Receiver, Passing Angle
-  - Game Score, Time Remaining
-  
+-   Extracting features used to build the ranking model
+    -   Distance, Relative Speed, Relative Orientation From Nearest Defender
+    -   Quarterback Position, If Under Pressure
+    -   Number of Defenders between Quarterback and Receiver, Passing Angle
+    -   Game Score, Time Remaining
 :::
 
 ::: fragment
-- Building baseline models to compare with ranking algorithm
-
+-   Building baseline models to compare with ranking algorithm
 :::
