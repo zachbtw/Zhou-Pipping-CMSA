@@ -81,5 +81,5 @@ format:
 :::
 
 ::: fragment
--   Building baseline models to compare with ranking algorithm
+-   Quantifying potential of separation
 :::
