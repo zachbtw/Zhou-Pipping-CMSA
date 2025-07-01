@@ -62,9 +62,44 @@ plays_sub <- plays |>
 tracking <- left_join(tracking, plays_sub, by = c("gameId", "playId"))
 passes_man <- tracking |> 
   filter(pff_manZone == "Man", passResult %in% c("C", "I", "IN")) |> 
-  mutate(side = ifelse(club == possessionTeam, "offense", "def")) |> 
-  select(-c(possessionTeam.x, passResult.x, pff_manZone.x, possessionTeam.y, passResult.y, 
-            pff_manZone.y))
+  mutate(side = ifelse(club == possessionTeam, "offense", "def"))
 
-tracking_zone <- tracking |> 
-  filter(pff_manZone == "Zone")
+receiving_stats <- player_play |> 
+  select(gameId, playId, nflId, wasTargettedReceiver)
+
+passes_man_targets <- left_join(passes_man, receiving_stats, by = c("gameId", "playId", "nflId")) |> 
+  filter(wasTargettedReceiver == 1)
+targets_at_pass <- passes_man_targets |> 
+  filter(event == "pass_forward")
+# view(head(targets_at_pass))
+
+passes_mandef <- passes_man |> 
+  filter(side == "def")
+mandef_at_pass <- passes_mandef |> 
+  filter(event == "pass_forward")
+view(head(mandef_at_pass))
+
+
+# passes_zone <- tracking |> 
+  # filter(pff_manZone == "Zone", passResult %in% c("C", "I", "IN")) |> 
+  # mutate(side = ifelse(club == possessionTeam, "off", "def"))
+
+pass_man_frames <- passes_man |> 
+  group_by(gameId, playId) |> 
+  filter(event == "pass_forward") |> 
+  distinct(frameId) |> 
+  select(gameId, playId, frameId) |> 
+
+passes_man |> 
+  filter(gameId %in% pass_man_frames,
+         playId %in% pass_man_frames, frameId %in% pass_man_frames)
+
+view(pass_man_frames)
+
+view(head(passes_man))
+
+
+#all_events <- 
+ # passes_man |> 
+  # distinct(event) 
+
