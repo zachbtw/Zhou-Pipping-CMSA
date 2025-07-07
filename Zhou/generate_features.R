@@ -2,6 +2,8 @@ library(tidyverse)
 library(data.table)
 library(dtplyr)
 library(pbapply)
+library(xgboost)
+library(caret)
 get_closest_opponent <- function(tracking) {
   player_pos <- tracking |> filter(club != "football")
   
@@ -45,12 +47,6 @@ get_motion_difference <- function(tracking) {
       opp_s_x = s_x,
       opp_s_y = s_y
     )
-  test <- player_info |>
-    count(nflId, closestOpponentId) |>
-    filter(n > 1)
-  if(nrow(test) > 0){
-    print(tracking)
-  }
   combined <- player_info |> 
     left_join(opponent_info, by = "closestOpponentId") |>
     mutate(
@@ -58,6 +54,7 @@ get_motion_difference <- function(tracking) {
     ) |> select(nflId, motion_diff)
   tracking |> left_join(combined, by = "nflId")
 }
+
 
 
 main <- function(){
@@ -115,14 +112,20 @@ main <- function(){
     pblapply(function(df) {
       get_motion_difference(df)
     }) |> bind_rows()
-  
-  closest |> inner_join(positions |> as_tibble(), by = "nflId") |>
-    filter(position %in% c("TE", "RB", "WR", "FB")) |> group_by(gameId, playId, frameId) |>
-    slice_max(motion_diff, n = 1, with_ties = FALSE) |> ungroup() |>
-    mutate(threw_to_diff = nflId == targeted_receiver) |> count(threw_to_diff)
+  multi_throws_game = c(2022103002, 2022110608)
+  multi_throws_play = c(1263, 2351)
+  #remove multi-throw plays
+  closest <- closest |> filter(!(gameId %in% multi_throws_game & playId %in% multi_throws_play)) |>
+    mutate(is_targetted = nflId == targeted_receiver)
+  closest <- closest |> filter(!is.na(motion_diff)) |> merge(positions, by = "nflId")
+  closest <- closest |> filter(position %in% c("WR", "RB", "TE", "HB", "RB"))
+  closest <- closest |>
+    fastDummies::dummy_cols(select_columns = "position", remove_selected_columns = TRUE)
+  features = c("closestOpponentDistance", "motion_diff")
+  #names(closest)[grepl("^position_", names(closest))]
+  cv_top1_acc <- run_xgbRanker_cv(closest, features = features, 
+                                  label = "is_targetted", k = 5, nrounds = 100, top_n = 1)
+    
 }
 main()
-gameId_t = 2022103002
-playId_t = 1263
-closest |> filter(gameId == gameId_t, playId == playId_t, nflId == 54633) |>
-  count(nflId)
+
