@@ -260,17 +260,18 @@ tracking
 plays |> filter(homeTeamWinProbabilityAdded  >= .50 | visitorTeamWinProbilityAdded >= .5)
 plays |> select(homeTeamWinProbabilityAdded) |> summarise(n = max(homeTeamWinProbabilityAdded))
 
-sample_game = 2022103001 
-sample_play = 3953
+sample_game = 2022102302   
+sample_play = 2655
 tracking_game <- tracking |> filter(gameId == sample_game, playId == sample_play) |> as_tibble()
+
 point_color_map = list(
-  "CAR" = "lightblue",
+  "CIN" = "orange",
   "ATL" = "red",
   "football" = "#654321"
 )
 description = plays |>filter(gameId == sample_game, playId == sample_play) |> select(playDescription) |> 
   as_tibble() |> first() |> as.character()
-title <- "(:23)(Shotgun) P. Walker pass deep left to D. Moore for 62 yards, \nTOUCHDOWN"
+title <- "(1:54) (Shotgun) J.Burrow pass short middle to T.Boyd to CIN 30 for 9 yards (J.Hawkins)."
 static_plot <- geom_football(league = "NFL", x_trans = 60, y_trans = 26.6667) +
   geom_point(data = tracking_game, aes(x = x, y = y, color = club), size = 3) +
   scale_color_manual(values = point_color_map) +

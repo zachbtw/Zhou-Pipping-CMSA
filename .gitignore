@@ -3,6 +3,8 @@
 .RData
 .Ruserdata
 .RDataTmp1
+.RDataTmp2
+tests/
 nfl-big-data-bowl-2025/
 nfl-big-data-bowl-2025.zip
 *.gif

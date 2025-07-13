@@ -17,8 +17,6 @@ create_cv_folds <- function(df, k = 5) {
 
 
 run_xgbRanker_cv <- function(df, features, label, params, k = 5, nrounds = 100, top_n = 1) {
-  df = closest
-  features = c("closestOpponentDistance", "motion_diff")
   label = "is_targetted"
   k = 5
   df_cv <- create_cv_folds(df, k = k)
