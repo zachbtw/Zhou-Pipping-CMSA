@@ -26,63 +26,62 @@ clean_tracking <- function(tracking) {
     ) 
 }
 
-get_nth_closest_opponent <- function(tracking, n = 1) {
-  player_pos <- tracking |> filter(club != "football")
-  
+get_top_n_closest_opponents <- function(pass_frame, n = 1) {
+  player_pos <- pass_frame |> dplyr::filter(club != "football")
   teams <- unique(player_pos$club)
   
-  team_1_pos <- player_pos |> filter(club == teams[1]) |> select(nflId, x, y)
-  team_2_pos <- player_pos |> filter(club == teams[2]) |> select(nflId, x, y)
-  #there has to be a faster way to do this...
-  cross_df <- team_1_pos |> cross_join(team_2_pos, suffix = c("_1", "_2")) |>
-    mutate(distance = sqrt((x_1 - x_2)^2 + (y_1 - y_2)^2))
+  team_1_pos <- player_pos |> filter(club == teams[1]) |> select(nflId, x, y, o, s_x, s_y)
+  team_2_pos <- player_pos |> filter(club == teams[2]) |> select(nflId, x, y, o, s_x, s_y)
   
-  closest_1 <- cross_df |>
-    group_by(nflId_1) |>
-    arrange(distance) |>
-    dplyr::slice(n) |>
-    ungroup() |>
-    select(nflId = nflId_1, closestOpponentId = nflId_2, closestOpponentDistance = distance)
+  cross_df <- team_1_pos |> 
+    cross_join(team_2_pos, suffix = c("_1", "_2")) |>
+    mutate(
+      distance = sqrt((x_1 - x_2)^2 + (y_1 - y_2)^2),
+      change_x = abs(x_1 - x_2),
+      change_y = abs(y_1 - y_2),
+      o_diff = abs(o_1 - o_2),
+      motion_diff_x = s_x_1 - s_x_2,
+      motion_diff_y = s_y_1 - s_y_2,
+      motion_diff = sqrt(motion_diff_x^2 + motion_diff_y^2)
+    )
+  get_top_n <- function(group_col, id_col_self, id_col_opp) {
+    cross_df |> 
+      group_by(.data[[group_col]]) |>
+      arrange(distance, .by_group = TRUE) |>
+      slice_head(n = n) |>
+      mutate(rank = row_number()) |>
+      ungroup() |>
+      transmute(
+        nflId = .data[[id_col_self]],
+        rank = rank,
+        closestOpponentId = .data[[id_col_opp]],
+        closestOpponentDistance = distance,
+        closestOpponentX = change_x,
+        closestOpponentY = change_y,
+        closestOpponentO = o_diff,
+        closestOpponent_XSpeed = motion_diff_x,
+        closestOpponent_YSpeed = motion_diff_y,
+        closestOpponent_SDiff= motion_diff,
+      )
+  }
   
-  closest_2 <- cross_df |>
-    group_by(nflId_2) |>
-    arrange(distance) |>
-    dplyr::slice(n) |>
-    ungroup() |>
-    select(nflId = nflId_2, closestOpponentId = nflId_1, closestOpponentDistance = distance)
+  closest_1 <- get_top_n("nflId_1", "nflId_1", "nflId_2")
+  closest_2 <- get_top_n("nflId_2", "nflId_2", "nflId_1")
   closest_all <- bind_rows(closest_1, closest_2) |>
-    rename(!!paste0("closestOpponentId_", n) := closestOpponentId,
-           !!paste0("closestOpponentDistance_",n) := closestOpponentDistance)
-  tracking_out <- tracking |>
-    left_join(closest_all, by = "nflId")
+    pivot_wider(
+      id_cols = nflId,
+      names_from = rank,
+      values_from = c(closestOpponentId, closestOpponentDistance, closestOpponentX, closestOpponentY, closestOpponentO,
+                      closestOpponent_XSpeed, closestOpponent_YSpeed, closestOpponent_SDiff),
+      names_glue = "{.value}_{rank}"
+    )
   
+  tracking_out <- pass_frame |>
+    left_join(closest_all, by = "nflId")
   return(tracking_out)
 }
 
-get_motion_difference <- function(tracking, n = 1) {
-  id <- paste0("closestOpponentId_", n)
-  tracking_cleaned <- tracking |>
-    select(nflId, x, y, s_x, s_y, !!sym(id), club) |>
-    filter(club != "football")
-  
-  # Separate player info and opponent info
-  player_info <- tracking_cleaned
-  opponent_info <- tracking_cleaned |> select(-c(!!sym(id))) |>
-    rename(
-      !!sym(id) := nflId,
-      opp_x = x,
-      opp_y = y,
-      opp_s_x = s_x,
-      opp_s_y = s_y
-    )
-  combined <- player_info |> 
-    left_join(opponent_info, by = id) |>
-    mutate(
-      motion_diff = sqrt((s_x - opp_s_x)^2 + (s_y - opp_s_y)^2)
-    ) |> select(nflId, motion_diff) |>
-    rename(!!paste0("motion_diff_",n) := motion_diff)
-  tracking |> left_join(combined, by = "nflId")
-}
+
 
 simulate_movement <- function(n, player, frame, closest_n = 1) {
   player_locs <- frame |> filter(nflId == player)
@@ -107,6 +106,7 @@ simulate_movement <- function(n, player, frame, closest_n = 1) {
   
   opponents$player_distance[1]
 }
+
 get_throw_model <- function(tracking, passing_frames){
   #generates linear relationship between player distance and aerial throw time
   #could(and did) do better with gam and other methods but not by much to justify
@@ -136,6 +136,7 @@ get_throw_model <- function(tracking, passing_frames){
   #2.857105  0.5865621  1.993898
   lm(air_time ~ qb_dist, data = throw_times)
 }
+
 get_game_context <- function(throws, games) {
   #features:
   # preSnapWinProb, scorediff, absoluteYardlineNumber, time_left, quarter, dropbackType,
@@ -148,9 +149,25 @@ get_game_context <- function(throws, games) {
     scorediff = ifelse(possessionTeam == homeTeamAbbr, preSnapHomeScore - preSnapVisitorScore,
                        preSnapVisitorScore - preSnapHomeScore),
     time_left = as.numeric(minute) * 60 + as.numeric(second),
-    isZone = ifelse(pff_manZone == "Zone", 1, 0) )|> filter(qbSpike == 0) |>
-    select(gameId, playId, preSnapWinProb, scorediff, absoluteYardlineNumber, time_left, quarter, isZone, 
-           pff_passCoverage)
+    isZone = ifelse(pff_manZone == "Zone", 1, 0)
+    ) |> filter(qbSpike == 0) |>
+    select(gameId, playId, preSnapWinProb, scorediff, absoluteYardlineNumber, time_left, quarter, isZone, yardsToGo,
+           down)
+}
+
+get_qb_angles <- function(sample_frame) {
+  qb_coords <- sample_frame |> filter(position == "QB") |> select(x, y)
+  #binary for end of game situations - explicitly encode
+  #cross-body throws - orientation and angle of throw
+  # Assuming only one QB per frame:
+  qb_x <- qb_coords$x[1]
+  qb_y <- qb_coords$y[1]
+  
+  sample_frame <- sample_frame |> 
+    mutate(qb_x_diff = x - qb_x,
+           qb_y_diff = y - qb_y,
+           qb_dist = sqrt(qb_x_diff^2 + qb_y_diff^2),
+           qb_deg = atan2(qb_y_diff, qb_x_diff) * 180 / pi)
 }
 
 project_movement <- function(sample_frame, throw_model, n = 1) {
@@ -161,9 +178,11 @@ project_movement <- function(sample_frame, throw_model, n = 1) {
   qb_x <- qb_coords$x[1]
   qb_y <- qb_coords$y[1]
   
-  # Compute Euclidean distance from each player to the QB
+  # Compute Euclidean distance from each player to the QB, looking at delta x,y now
   sample_frame <- sample_frame |> 
-    mutate(qb_dist = sqrt((x - qb_x)^2 + (y - qb_y)^2))
+    mutate(qb_x_diff = x - qb_x,
+           qb_y_diff = y - qb_y,
+           qb_dist = sqrt(qb_x_diff^2 + qb_y_diff^2))
   
   sample_frame <- sample_frame |> 
     mutate(est_time = predict(throw_model, newdata = sample_frame))
@@ -201,51 +220,58 @@ main <- function(){
   
   closest <- passing_frames |> merge(positions, by = "nflId")
   num_closest <- 5
-  throw_model <- get_throw_model(tracking, passing_frames)
+  #throw_model <- get_throw_model(tracking, passing_frames)
   #find closest opponent for each player - have to include frameId for multiple throw plays
-  for(n in 1:num_closest){
-  closest <- closest |>
-    as_tibble() |>
-    group_by(gameId, playId, frameId) |>
-    group_split() |>
-    pblapply(function(df) {
-      get_nth_closest_opponent(df, n = n)
-    }) |>
-    bind_rows()
-  
-  #get motion difference for the closest opponent
   closest <- closest |>
     group_by(gameId, playId, frameId) |>
     group_split() |>
     pblapply(function(df) {
-      get_motion_difference(df, n = n)
+      get_top_n_closest_opponents(df, n = num_closest)
     }) |> bind_rows()
   
+  #get qb differences
   closest <- closest |>
     group_by(gameId, playId, frameId) |>
     group_split() |>
     pblapply(function(df) {
-      project_movement(df, throw_model, n = n) 
+      get_qb_angles(df) 
     }) |> bind_rows()
-  }
-  write.csv(closest,"features.csv", row.names = FALSE)
   
+  motion_feats <- crossing(
+    prefix = c("closestOpponent_XSpeed_", "closestOpponent_YSpeed_", "closestOpponent_SDiff_"),
+    i = 1:num_closest
+  ) |> 
+    mutate(name = paste0(prefix, i)) |> 
+    pull(name)
   
-  #remove multi-throw plays
-  motion_feats <- paste0("motion_diff_", 1:num_closest)
-  distance_feats <- paste0("closestOpponentDistance_", 1:num_closest)
-  est_distance_feats <- paste0("closestEstDefender_", 1:num_closest)
+  distance_feats  <- crossing(
+    prefix = c("closestOpponentDistance_", "closestOpponentX_", "closestOpponentY_", "closestOpponentO_"),
+    i = 1:num_closest
+  ) |> 
+    mutate(name = paste0(prefix, i)) |> 
+    pull(name)
+  qb_feats <- c("qb_dist", "qb_deg", "qb_x_diff", "qb_y_diff")
+  
+  #add positions
   closest <- closest |> mutate(is_targetted = nflId == targeted_receiver) |> 
-    filter(!is.na(motion_diff_1), position %in% c("WR", "RB", "TE", "HB", "RB")) |>
+    filter(!is.na(closestOpponentId_1), position %in% c("WR", "RB", "TE", "HB", "RB")) |>
     fastDummies::dummy_cols(select_columns = "position", remove_selected_columns = TRUE)
   
-  game_context <- get_game_context(throws, games) |>
-    fastDummies::dummy_cols(select_columns = "pff_passCoverage", remove_selected_columns = TRUE)
-  closest <- closest |> merge(game_context, by = c("gameId", "playId")) 
-  context_feats <- c(colnames(game_context))
-  context_feats <- context_feats[!context_feats %in% c("gameId", "playId")]
+  #add game context
+  game_context <- get_game_context(throws, games) 
   
-  features = c("qb_dist", motion_feats, distance_feats, est_distance_feats, names_feat, context_feats)
+  
+  #small custom features
+  closest <- closest |> merge(game_context, by = c("gameId", "playId")) |>
+    mutate(
+      givesFirst = yardsToGo < qb_dist,
+      lastPlay = down %in% c(3,4)
+    )
+  position_feats <- paste0("position_", c("RB", "TE", "WR"))
+  context_feats <- c(colnames(game_context))
+  context_feats <- context_feats[!context_feats %in% c("gameId", "playId", "pff_passCoverage")]
+  write.csv(closest,"Zhou/features.csv", row.names = FALSE)
+  features = c("qb_dist", motion_feats, distance_feats,context_feats, position_feats)
   #
   #cv_top1_acc <- run_xgbRanker_cv(closest, features = features, 
   #                                label = "is_targetted", k = 5, nrounds = 100, top_n = 1)

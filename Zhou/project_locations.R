@@ -73,8 +73,8 @@ short_sample_game = 2022102302
 long_sample_play = 110
 long_sample_game = 2022101000
 
-sample_play <- actual_reception |> filter(playId == short_sample_play, 
-                                          gameId == short_sample_game)
+sample_play <- actual_reception |> filter(playId == long_sample_play, 
+                                          gameId == long_sample_game)
 
 point_color_map = list(
   "ATL" = "red",
@@ -101,8 +101,9 @@ p1 <- geom_football(league = "NFL", x_trans = 60, y_trans = 26.6667) +
   scale_color_manual(values = point_color_map) +
   theme_minimal() +
   theme(legend.position = "none") +
-  labs(title =  "Locations at Reception", 
-       subtitle = "Opaque = Actual Location, Transparent = Projected Location")
+  labs(title =  "D.Carr Pass Incomplete Deep Right to M.Hollins.", 
+       subtitle = "Projections Generated from Extending Player Speed",
+       caption = "Opaque = Actual Location, Transparent = Projected Location")
 
 
 p2 <- geom_football(league = "NFL", x_trans = 60, y_trans = 26.6667) +
@@ -112,7 +113,7 @@ p2 <- geom_football(league = "NFL", x_trans = 60, y_trans = 26.6667) +
   theme(legend.position = "none") +
   labs(title =  long_title, 
        subtitle = "Locations at Throw")
-combined_plot <- p2 + p1  # Use `p1 + p2` for side-by-side layout
+combined_plot <- p2 / p1  # Use `p1 + p2` for side-by-side layout
 
 combined_plot
 

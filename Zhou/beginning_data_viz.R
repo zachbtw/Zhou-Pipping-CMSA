@@ -288,3 +288,78 @@ animated_plot <- static_plot +
   )
 animated_plot
 anim_save("highWP.gif", animated_plot)
+
+
+feats <- read.csv("Zhou/features.csv")
+
+feats |> select(
+  closestOpponent_SDiff_1, is_targetted
+)
+
+ggplot(feats, aes(x = closestOpponent_SDiff_1, fill = is_targetted)) +
+  geom_density(alpha = 0.6) +
+  labs(title = "Conditional Density of x by Group") +
+  theme_minimal()
+
+ggplot(feats, aes(y = ifelse(is_targetted, 1, 0), x = closestOpponent_SDiff_1)) +
+  geom_point()
+
+feats |>
+  group_by(gameId, playId) |>
+  filter(closestOpponentDistance_2 == max(closestOpponentDistance_2)) |>    # Keep only rows with max stat per group
+  ungroup() |> 
+  summarise(prop_targeted = mean(is_targetted))
+
+
+library(ggplot2)
+
+# Define vectors
+u <- c(3, 4)
+v <- c(1, 2)
+diff <- u - v  # u - v = (2, 2)
+
+# Create a data frame for all three vectors
+vectors <- data.frame(
+  x = c(0, 0, 1),
+  y = c(0, 0, 2),
+  xend = c(u[1], v[1], 3),
+  yend = c(u[2], v[2], 4),
+  label = c("Speed Vector of Player 1", "Speed Vector of Player 2", "Difference")
+)
+
+# Plot
+close <- ggplot(vectors) +
+  geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = label),
+               arrow = arrow(length = unit(0.1, "inches")), size = 0.6) +
+  xlim(-2,5) +
+  ylim(-2, 5) +
+  coord_fixed() +
+  theme_minimal() +
+  labs(title = "Close Coverage", color = "Vectors") +
+  scale_color_manual(values = c("Speed Vector of Player 1" = "black", 
+                                "Speed Vector of Player 2" = "black", "Difference"= "red")) +
+  theme(legend.position = "none")
+u <- c(3, 4)
+v <- c(-1, 2)
+diff <- u - v 
+
+vectors <- data.frame(
+  x = c(0, 0, v[1]),
+  y = c(0, 0, v[2]),
+  xend = c(u[1], v[1], u[1]),
+  yend = c(u[2], v[2], u[2]),
+  label = c("Speed Vector of Player 1", "Speed Vector of Player 2", "Difference")
+)
+
+far <- ggplot(vectors) +
+  geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = label),
+               arrow = arrow(length = unit(0.1, "inches")), size = 0.6) +
+  coord_fixed() +
+  theme_minimal() +
+  labs(title = "Open Coverage", color = "Vectors") +
+  scale_color_manual(values = c("Speed Vector of Player 1" = "black", 
+                                "Speed Vector of Player 2" = "black", "Difference"= "red")) +
+  xlim(-2,5) +
+  ylim(-2, 5)
+library(patchwork)
+close + far

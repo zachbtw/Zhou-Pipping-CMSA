@@ -17,8 +17,6 @@ create_cv_folds <- function(df, k = 5) {
 
 
 run_xgbRanker_cv <- function(df, features, label, params, k = 5, nrounds = 100, top_n = 1) {
-  label = "is_targetted"
-  k = 5
   df_cv <- create_cv_folds(df, k = k)
   fold_num = 1
   
@@ -73,10 +71,24 @@ run_xgbRanker_cv <- function(df, features, label, params, k = 5, nrounds = 100, 
     return(top_n_acc)
   })
   
-  mean(unlist(fold_results))
+  c(mean(unlist(fold_results)), sd(unlist(fold_results)))
 }
 
 main <- function(){
+  features <- read.csv("Zhou/Features.csv")
+  num_closest = 5
+  #"closestOpponent_XSpeed_", "closestOpponent_YSpeed_", "closestOpponent_SDiff_"
+  motion_feats <- crossing(
+    prefix = c("closestOpponent_XSpeed_", "closestOpponent_YSpeed_","closestOpponent_SDiff_",
+               "closestOpponentDistance_", "closestOpponentX_", "closestOpponentY_", "closestOpponentO_"),
+    i = 1:num_closest
+  ) |> 
+    mutate(name = paste0(prefix, i)) |> 
+    pull(name)
+  
+  feature_names <- c(motion_feats, "qb_dist", "qb_deg", "preSnapWinProb", "scorediff",
+                     "absoluteYardlineNumber", "time_left", "quarter", "isZone", "yardsToGo", "down",
+                     "givesFirst", "lastPlay")
   hyperparam_grid <- expand.grid(
     nrounds = seq(from = 100, to = 300, by = 100),
     eta = c(0.025, 0.05, 0.1, 0.3),
@@ -88,28 +100,50 @@ main <- function(){
   ) |> as.data.frame()
   best_params = NA
   best_accuracy = 0
+  best_sd = NA
   total = nrow(hyperparam_grid)
   pb <- txtProgressBar(min = 0, max = total, style = 3)
-  for(i in 1:total) {
+  for(i in 129:total) {
     test_params <- hyperparam_grid[i, ]  |> as.list()
-    accuracy <- run_xgbRanker_cv(closest, features = features, 
-                     label = "is_targetted", params = test_params, k = 5, nrounds = 100, top_n = 1)
+    model_vals <- run_xgbRanker_cv(features, features = feature_names, 
+                                 label = "is_targetted", params = test_params, k = 5, nrounds = 100, top_n = 1)
+    accuracy <- model_vals[1]
+    sd <- model_vals[2]
     if(accuracy > best_accuracy) {
       best_accuracy = accuracy
       best_params = test_params
+      best_sd = sd
     }
     setTxtProgressBar(pb, i)
     
   }
   close(pb) 
-  print(best_accuracy) #best accuracy - 1/3
-  #$nrounds - 100
-  #eta - 0.05
-  #max_depth - 4
-  #gamma - 1
-  #colsample_bytree -1
-  #min_child_weight - 5
-  #subsample - 1
-
+  print(best_accuracy)
+  #without speed: 0.52482480 0.01185587
+  #with 0.5302462 0.0110015
   
-  }
+}
+k = 5
+stderr <- 0.0110015 / k
+mean_score = 0.5302462
+# 95% CI using t-distribution
+t_crit <- qt(0.975, df = k - 1)
+ci_lower <- mean_score - t_crit * stderr
+ci_upper <- mean_score + t_crit * stderr
+
+
+print(best_params)
+params <- list(
+  nrounds = 300,
+  eta = .1,
+  max_depth = 5,
+  gamma = 0,
+  colsample_bytree = 0.75,
+  min_child_weight = 1,
+  subsample = 1
+)
+#attr(,"out.attrs")$dim
+#nrounds              eta        max_depth            gamma colsample_bytree min_child_weight 
+#300                  .1             6                0                0.75                1
+#subsample 
+#1 
