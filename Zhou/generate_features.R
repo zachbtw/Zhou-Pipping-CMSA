@@ -40,8 +40,8 @@ get_top_n_closest_opponents <- function(pass_frame, n = 1) {
       change_x = abs(x_1 - x_2),
       change_y = abs(y_1 - y_2),
       o_diff = abs(o_1 - o_2),
-      motion_diff_x = s_x_1 - s_x_2,
-      motion_diff_y = s_y_1 - s_y_2,
+      motion_diff_x = (x_1 + s_x_1) - (x_2 + s_x_2),
+      motion_diff_y = (y_1 + s_y_1) - (y_2 + s_y_2),
       motion_diff = sqrt(motion_diff_x^2 + motion_diff_y^2)
     )
   get_top_n <- function(group_col, id_col_self, id_col_opp) {
@@ -267,11 +267,20 @@ main <- function(){
       givesFirst = yardsToGo < qb_dist,
       lastPlay = down %in% c(3,4)
     )
-  position_feats <- paste0("position_", c("RB", "TE", "WR"))
-  context_feats <- c(colnames(game_context))
-  context_feats <- context_feats[!context_feats %in% c("gameId", "playId", "pff_passCoverage")]
+  
+  pressures <- player_play |> group_by(gameId, playId) |>
+    summarise(under_pressure = mean(causedPressure) > 0) |> as_tibble()
+
+  closest <- closest |> merge(pressures, on = c("gameId", "playId"))
+  
+  
+  
+  reception_count <- player_play |> group_by(nflId) |> 
+    summarise(targetTotal = sum(wasTargettedReceiver))
+  closest <- closest |> merge(reception_count, on = "nflId")
+  
+  
   write.csv(closest,"Zhou/features.csv", row.names = FALSE)
-  features = c("qb_dist", motion_feats, distance_feats,context_feats, position_feats)
   #
   #cv_top1_acc <- run_xgbRanker_cv(closest, features = features, 
   #                                label = "is_targetted", k = 5, nrounds = 100, top_n = 1)

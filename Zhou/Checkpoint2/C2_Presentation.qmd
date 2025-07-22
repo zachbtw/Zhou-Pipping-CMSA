@@ -1,0 +1,128 @@
+---
+title: "Quantifying QB Throw Decision-Making in Football"
+editor: visual
+author: Zachary Pipping, Lou Zhou | Karim Kassam
+format:
+  revealjs: 
+    embed-resources: true
+    slide-number: true
+    preview-links: auto
+    footer: Zachary Pipping, Lou Zhou | Karim Kassam
+---
+
+## Motivating Example - PJ Walker to DJ Moore
+
+::: {style="text-align: center;"}
+<img src="DJ_MOORE_TIES_THE_GAME.gif" width="800"/>
+:::
+
+## Motivating Questions
+
+::: fragment
+-   How likely would other QBs make that same decision?
+:::
+
+::: fragment
+-   Can we quantify how reckless or conservative a QB is?
+    -   Are QBs being too reckless or too conservative in their throws?
+:::
+
+::: fragment
+-   Contextualizing touchdown throws / interceptions
+    -   Would other QBs make the same decision?
+:::
+
+::: fragment
+-   Look to build a ranking model which determines the most likely receiver at a frame given throw attempt
+:::
+
+## Data Overview {.smaller}
+
+::::::::: columns
+::::::: {.column width="50%"}
+-   **2025 NFL Big Data Bowl – Weeks 1–9**
+
+::: fragment
+-   **Game and Play Data** – Teams, Score, Play Description, Game Context, Play Result, Changes in Win Probability
+:::
+
+::: fragment
+-   **Player Play Data** – Statistics for each player for a play
+:::
+
+::: fragment
+-   **Tracking Data** - Locations of players and the football at each frame of a play
+:::
+
+::: fragment
+-   Exclusively looking at throwing plays with an obvious target
+    -   Removing spikes and throwaways
+:::
+:::::::
+
+::: {.column width="50%"}
+![](../Checkpoint1/highWP.gif)
+:::
+:::::::::
+
+## Current Spacing Tells an Incomplete Story
+
+::: {style="text-align: center;"}
+<img src="../Checkpoint1/testing.gif"/>
+:::
+
+## Speed and Orientation as a Proxy for Future Separation
+
+::: {style="text-align: center;"}
+<img src="speed_vectors.png"/>
+:::
+
+## Methodology
+
+::: fragment
+-   Building a ranking algorithm(i.e. [XGBoost](https://cran.r-project.org/web/packages/xgboost/xgboost.pdf)) to rank the likeliest recipient at a frame - 53.0 $\pm$ 0.6% accuracy
+    -   Imputing Features like distance from tracking and event data
+    -   Previous Work: Deep Learning Approach[^1], 59.8% accuracy
+:::
+
+[^1]: Burke, Brian. “DeepQB: Deep Learning with Player Tracking to Quantify Quarterback Decision-Making & Performance.” MIT Sloan Sports Analytics Conference, 1 Mar. 2019.
+
+::: fragment
+-   Applying model to quantify recklessness / conservative tendencies of quarterbacks
+:::
+
+## Feature Set
+
+-   **Recipient Features** - Distances, Differences in Orientations and Speeds from Top 5 Closest Defenders, Whether the Throw will Result in a First Down, *Space Creation*[^2], *Receiver Skill*
+
+[^2]: *https://github.com/burrisk/Big-Data-Bowl/*
+
+::: fragment
+-   **Quarterback Features** - Distance from Receiver, Movement Vector, *Defensive Pressure*
+:::
+
+::: fragment
+-   **Game Context** - Win Probability, Quarter, Down and Distance, Score Differential
+:::
+
+## Future Steps
+
+::: fragment
+-   Continuing to build feature set to increase model performance
+    -   Looking to perform comparably with previous deep learning approach and simpler models
+:::
+
+::: fragment
+-   Cutting down on Redundant Features and Parameter Tuning
+    -   Building the simplest model with the strongest predictive power
+:::
+
+::: fragment
+-   Quantifying Recklessness with Model Outputs
+:::
+
+## Appendix
+
+::: {style="text-align: center;"}
+<img src="project_fail.png" width="600px"/>
+:::

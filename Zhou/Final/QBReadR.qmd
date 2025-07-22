@@ -1,0 +1,191 @@
+---
+title: "QBReadR: Contextualizing NFL Throwing Decisions Through Modeling Receiver Choice"
+editor: visual
+author:
+- name: Lou Zhou
+  affiliation: Rice University
+- name: Zachary Pipping
+  affiliation: University of Florida
+- name: Karim Kassam
+  affiliation: Teamworks, Outside Advisor
+format:
+  revealjs: 
+    embed-resources: true
+    slide-number: true
+    preview-links: auto
+    theme: theme.scss
+---
+
+## Motivating Example - PJ Walker to DJ Moore
+
+::: {style="text-align: center;"}
+<img src="Assets/Slides_Assets/DJ_MOORE_TIES_THE_GAME.gif" width="800"/>
+:::
+
+## Motivating Questions
+
+::: fragment
+-   What would other quarterbacks do in this situation?
+:::
+
+::: fragment
+- Which quarterbacks deviate from the most likely option the most?
+  -   Do some quarterbacks find success in this deviation?
+  -   Should some quarterbacks throw more typical passes?
+:::
+
+::: fragment
+- Look to build a ranking model to determine the most likely throw target
+:::
+
+
+## Data Overview{.smaller}
+
+::::::::: columns
+::::::: {.column width="50%"}
+-   **2024 NFL Big Data Bowl – 2022 Season Weeks 1–9**
+
+::: fragment
+-   **Game and Play Data** – Teams, Score, Play Description, Game Context, Play Result, Changes in Win Probability
+:::
+
+::: fragment
+-   **Player Play Data** – Statistics for each player for a play
+    -   Route ran by player, Whether the player made a tackle or interception
+
+:::
+
+::: fragment
+-   **Tracking Data** - Locations of players and the football at each frame of a play
+:::
+
+::: fragment
+-   Exclusively looking at throwing plays with an obvious target
+    -   Removing spikes and throwaways
+
+:::
+:::::::
+
+::: {.column width="50%"}
+![](Assets/Slides_Assets/highWP.gif)
+:::
+:::::::::
+
+## Current Spacing Tells an Incomplete Story
+
+::: {style="text-align: center;"}
+<img src="Assets/Slides_Assets/dadamsthrow.gif"/>
+:::
+
+## Speed and Orientation as a Proxy for Future Separation
+::::::::: columns
+::::::: {.column width="50%"}
+<br>
+<img src="Assets/Slides_Assets/toyexample.png"/>
+:::::::
+
+::: {.column width="50%"}
+<img src="Assets/Slides_Assets/corr_plot.png"/>
+:::
+:::::::::
+
+## Methodology
+
+::: fragment
+-   Building a ranking algorithm(i.e. [XGBoost](https://cran.r-project.org/web/packages/xgboost/xgboost.pdf)) using hand-crafted features to rank the likeliest recipient at a frame - 51.6 $\pm$ 0.8% top-1 accuracy
+    - Using a random hyperparameter search and 5-fold cross validation, with folds on matches
+    -   Performs significantly stronger than naive random guess(20%) and choosing the player who is farthest from their closest defender(31%)
+:::
+
+::: fragment
+-   Applying model to contextualize individual QB decisions by comparing them to model-predicted choices
+:::
+
+## Feature Set{.smaller}
+
+| Feature Category       | Features                                                                                   |
+|------------------------|---------------------------------------------------------------------------------------------|
+| **Recipient Features** | - *Distance (x, y, magnitude)* <br> - *Speed Differences (x, y, magnitude)* <br> - *Orientation Differences* <br> - *Speed Vector Differences* <br> - Receiver Position <br> - First Down Indicator |
+| **Quarterback Features** | - Distance from Receiver <br> - Movement Vector <br> - Under Pressure Indicator          |
+| **Game Context**       | - Quarter <br> - Down and Distance <br> - Score Differential <br> - Time Remaining         |
+<br><br><br>
+*Italics denote feature taken relative to the top-5 closest defenders*
+
+
+## In Our Example, The Likely Play is the Safe Play
+::::::::: columns
+::::::: {.column width="66%"}
+<img src="Assets/Slides_Assets/PJMoorePredictions.png"/>
+:::::::
+
+::: {.column width="34%"}
+<br><br>
+<img src="Assets/Slides_Assets/moore_throw_rankings.png"/>
+:::
+:::::::::
+## Passing the Jameis Winston Test
+::::::::: columns
+::::::: {.column width="50%"}
+<br><br>
+<img src="Assets/Slides_Assets/MostPredictable.png"/>
+:::::::
+
+::: {.column width="50%"}
+<br><br>
+<img src="Assets/Slides_Assets/MostUnPredictable.png"/>
+:::
+:::::::::
+## Potential Optimization with More Conventional Passes
+::: {style="text-align: center;"}
+<img src="Assets/Slides_Assets/QBClustering.png"/>
+:::
+
+## Discussion{.smaller}
+::: fragment
+- Able to model the likely target using an XGBoost Ranking Model with strong predictive power
+  - Model can still be made stronger by incorporating newer factors like receiver skill
+  - Can then contextualize throws with comparisons to the likely target
+  
+:::
+
+::: fragment
+- Comparing YPA and Completion Percentage of Throws when throwing to the likely receiver vs. other receivers is far from perfect
+  - Since QBs will face different game states, some may be faced with more situations where the likely throw is the only good option
+  - YPA treats interceptions and incompletions the same, potentially overvaluing players who throw risky, interception-prone throws
+  
+:::  
+
+::: fragment
+- Future work should be done to model yardage and completion percentage for potential receivers to determine the optimal decision 
+  - Can use ranking model to determine whether it is common to find this optimal decision
+  - Rewarding players who find strong but hard to see passes
+  
+:::
+
+
+::: fragment
+- Should also account for the relative ranking of receivers in future work, as we currently treat plays with one clear target as the same as those with multiple viable options
+:::
+
+## Further Information
+
+- Acknowledgements: Karim Kassam, Quang Nguyen, CMU Statistics
+
+- Code: [https://github.com/zachbtw/Zhou-Pipping-CMSA](https://github.com/zachbtw/Zhou-Pipping-CMSA)
+
+- Contact Us:
+  - Lou Zhou: [lou-zhou.github.io](https://lou-zhou.github.io)
+  - Zachary Pipping: placeholder
+
+## Appendix A - Code
+
+[https://github.com/zachbtw/Zhou-Pipping-CMSA](https://github.com/zachbtw/Zhou-Pipping-CMSA)
+
+## Appendix B - Projecting Future Locations With a Point Estimate
+
+::: {style="text-align: center;"}
+<img src="Assets/Slides_Assets/project_fail.png" width="600px"/>
+:::
+
+## Appendix C - Defender Positioning and Receiver Distance are Most Important in Deciding Target
+<img src="Assets/Slides_Assets/vip_plot_notitle.png"/>

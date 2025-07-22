@@ -6,7 +6,7 @@ library(dtplyr)
 library(dplyr, warn.conflicts = FALSE)
 library(deldir)
 library(sf)
-
+library(gganimate)
 #reading data
 tracking <- lazy_dt(arrow::read_parquet("nfl-big-data-bowl-2025/tracking.parquet"))
 plays <- lazy_dt(read.csv("nfl-big-data-bowl-2025/plays.csv"))
@@ -258,7 +258,8 @@ sample_play
 
 tracking
 plays |> filter(homeTeamWinProbabilityAdded  >= .50 | visitorTeamWinProbilityAdded >= .5)
-plays |> select(homeTeamWinProbabilityAdded) |> summarise(n = max(homeTeamWinProbabilityAdded))
+plays |> select(homeTeamWinProbabilityAdded) |> summarise(n = max(homeTeamWinProbabilityAdded)) |>
+  select()
 
 sample_game = 2022102302   
 sample_play = 2655
@@ -278,7 +279,7 @@ static_plot <- geom_football(league = "NFL", x_trans = 60, y_trans = 26.6667) +
   theme_minimal() +
   theme(legend.position = "none") +
   labs(title =  title)
-library(gganimate)
+
 animated_plot <- static_plot +
   transition_states(
     states = frameId,
@@ -320,46 +321,27 @@ diff <- u - v  # u - v = (2, 2)
 
 # Create a data frame for all three vectors
 vectors <- data.frame(
-  x = c(0, 0, 1),
+  x = c(2, 0, 1),
   y = c(0, 0, 2),
   xend = c(u[1], v[1], 3),
   yend = c(u[2], v[2], 4),
-  label = c("Speed Vector of Player 1", "Speed Vector of Player 2", "Difference")
+  label = c("Player Movement Vectors", "Player Movement Vectors", "Difference")
 )
-
+points <- data.frame(
+  x = c(0,2),
+  y = c(0, 0)
+)
 # Plot
 close <- ggplot(vectors) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = label),
                arrow = arrow(length = unit(0.1, "inches")), size = 0.6) +
+  geom_point(aes(x = x, y = y), data = points) + 
   xlim(-2,5) +
   ylim(-2, 5) +
   coord_fixed() +
   theme_minimal() +
-  labs(title = "Close Coverage", color = "Vectors") +
-  scale_color_manual(values = c("Speed Vector of Player 1" = "black", 
-                                "Speed Vector of Player 2" = "black", "Difference"= "red")) +
-  theme(legend.position = "none")
-u <- c(3, 4)
-v <- c(-1, 2)
-diff <- u - v 
+  labs(title = "Magnitude of Difference of Speed Vectors", color = "Vectors:") +
+  scale_color_manual(values = c("Player Movement Vectors" = "black", "Difference"= "red")) +
+  theme(plot.title = element_markdown(hjust = 0.5), legend.position = "bottom") 
 
-vectors <- data.frame(
-  x = c(0, 0, v[1]),
-  y = c(0, 0, v[2]),
-  xend = c(u[1], v[1], u[1]),
-  yend = c(u[2], v[2], u[2]),
-  label = c("Speed Vector of Player 1", "Speed Vector of Player 2", "Difference")
-)
-
-far <- ggplot(vectors) +
-  geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = label),
-               arrow = arrow(length = unit(0.1, "inches")), size = 0.6) +
-  coord_fixed() +
-  theme_minimal() +
-  labs(title = "Open Coverage", color = "Vectors") +
-  scale_color_manual(values = c("Speed Vector of Player 1" = "black", 
-                                "Speed Vector of Player 2" = "black", "Difference"= "red")) +
-  xlim(-2,5) +
-  ylim(-2, 5)
-library(patchwork)
-close + far
+ggsave("Zhou/Final/Assets/toyexample.png", close)
