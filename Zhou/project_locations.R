@@ -1,3 +1,4 @@
+#project movement using speed vectors - unused in final project
 library(tidyverse)
 library(arrow)
 library(sportyR)
@@ -15,6 +16,8 @@ plays <- lazy_dt(read.csv("nfl-big-data-bowl-2025/plays.csv"))
 player_play <- lazy_dt(read.csv("nfl-big-data-bowl-2025/player_play.csv"))
 games <- lazy_dt(read.csv("nfl-big-data-bowl-2025/games.csv"))
 players <- lazy_dt(read.csv("nfl-big-data-bowl-2025/players.csv"))
+
+#clean tracking and remove multi-throw plays
 multi_throws <- tracking |> filter(event == "pass_arrived")  |> select(gameId, playId)  |>
   group_by(gameId, playId) |>
   count(nn = n()) |> filter(nn != 23) |> select(gameId, playId) |> as_tibble()
@@ -28,6 +31,8 @@ passing_frames <- passing_frames |>
 passing_frames <- passing_frames |>
   merge(receiver, by  = c("gameId", "playId"))
 positions <- players |> select(nflId, position)
+
+#get projections in the future
 throw_model <- get_throw_model(tracking, passing_frames)
 
 throw_distance <- passing_frames |> merge(positions, by = "nflId") |>
@@ -43,11 +48,15 @@ throw_times <- tracking |> select(playId, gameId, frameId, event) |>
   group_by(playId, gameId) |> summarise(
     air_time = diff(frameId),
     .groups = "drop") |> as_tibble()
+
+#air times from throw distance
 air_times <- throw_distance |> merge(throw_times, by = c("playId", "gameId")) |>
   select(gameId, playId, est_time)
 
 throwing_frames <- tracking |> filter(event == "pass_forward") |> 
   merge(air_times, by = c("playId", "gameId"))
+
+#generate point estimates
 estimated_reception <- throwing_frames |> clean_tracking() |> 
   mutate(
   seconds = est_time / 10,
@@ -59,6 +68,8 @@ estimated_reception <- throwing_frames |> clean_tracking() |>
   throw_y = y,
 ) |> select(playId, gameId, nflId, x_est_throw, y_est_throw, est_time, throw_x, throw_y) 
 
+
+#rule based accounting of acceleration
 actual_reception <- tracking |> filter(event == "pass_arrived") |> clean_tracking() |> 
   select(playId, gameId, nflId, x, y, club) |>
   merge(estimated_reception, by = c("playId", "gameId", "nflId")) |> 
@@ -66,7 +77,7 @@ actual_reception <- tracking |> filter(event == "pass_arrived") |> clean_trackin
   mutate(distance = sqrt((x - x_est_throw)**2 + (y - y_est_throw)**2))
 
 mean_distance <- actual_reception |> filter(!is.na(distance)) |> summarise(mean(distance))
-#w/ acceleration: 2.16629, w/o acceleration: 1.553885 yrds
+#generate examples
 short_sample_play = 2655
 short_sample_game = 2022102302
 

@@ -1,3 +1,4 @@
+#generate random search, cv, and result generation for xgb
 library(tidyverse)
 library(data.table)
 library(dtplyr)
@@ -20,10 +21,9 @@ create_cv_folds <- function(df, k = 5) {
 run_xgbRanker_cv <- function(df, features, label, params, k = 5, top_n = 1) {
   df_cv <- create_cv_folds(df, k = k)
   fold_results <- map(1:k, function(fold_num) {
-    #train only on completed passes
     df_train <- df_cv |> filter(fold != fold_num)
     df_val <- df_cv |> filter(fold == fold_num)
-    
+    #set X and ys
     X_train <- as.matrix(df_train[, features])
     y_train <- df_train[[label]]
     group_train <- df_train |>
@@ -60,7 +60,7 @@ run_xgbRanker_cv <- function(df, features, label, params, k = 5, top_n = 1) {
     
     preds <- predict(bst, dval)
     df_val$pred_score <- preds
-    
+    #get results and return top-1 
     df_val_ranked <- df_val |>
       group_by(gameId, playId) |>
       arrange(desc(pred_score), .by_group = TRUE) |>
@@ -70,6 +70,7 @@ run_xgbRanker_cv <- function(df, features, label, params, k = 5, top_n = 1) {
     top_n_acc <- mean(df_val_ranked$hit)
     return(top_n_acc)
   })
+  #get CI
   t_crit <- qt(0.975, df = k - 1)
   avg <- mean(unlist(fold_results))
   std <- sd(unlist(fold_results))
@@ -78,7 +79,7 @@ run_xgbRanker_cv <- function(df, features, label, params, k = 5, top_n = 1) {
   c(avg,moe)
 }
 
-main <- function(){
+randomSearch <- function(){
   features <- read.csv("Zhou/Features-Results/features.csv")
   z_features <- read.csv("Zhou/Features-Results/zachfeatures.csv") |> group_by(gameId, playId) |>
     mutate(throw_frame = frameId == max(frameId),
@@ -88,7 +89,7 @@ main <- function(){
     rename(nflId = runnerId)
   features <- features |> merge(z_features, by = c("gameId", "playId", "nflId"))
   num_closest = 3
-  #"closestOpponent_XSpeed_", "closestOpponent_YSpeed_", "closestOpponent_SDiff_"
+  #build vector of feature names
   motion_feats <- crossing(
     prefix = c("closestOpponent_XSpeed_", "closestOpponent_YSpeed_","closestOpponent_SDiff_",
                "closestOpponentDistance_", "closestOpponentX_", "closestOpponentY_", "closestOpponentO_"),
@@ -116,6 +117,7 @@ main <- function(){
   handlers(global = TRUE)
   handlers("cli")
   with_progress({
+    #random search
     p <- progressor(steps = total)
       for(i in 1:total) {
         test_params <- hyperparam_grid[sample(1:nrow(hyperparam_grid), 1), ]  |>
@@ -134,10 +136,6 @@ main <- function(){
   }
   })
   print(best_accuracy)
-  #without speed: 0.52482480 0.01185587
-  #with 0.533863701 0.003162155
-  #0.516554628 0.008462518
-  
 }
 test_params <- list(
   nrounds = 300,#300
@@ -203,11 +201,10 @@ getResults <- function(params) {
   player_play <- lazy_dt(read.csv("nfl-big-data-bowl-2025/player_play.csv"))
   games <- lazy_dt(read.csv("nfl-big-data-bowl-2025/games.csv"))
   players <- lazy_dt(read.csv("nfl-big-data-bowl-2025/players.csv"))
-  #0.585944992 0.003273449
+
   positions <- player_play |> select(gameId, playId, nflId) |> merge(players |> select(nflId, position), on = "nflId") |>
     filter(position == "QB") |> rename(QB_nflId = nflId) |> select(playId, gameId, QB_nflId)
-  features
-  #filter(gameId == 2022103001, playId == 3953) play of interest
+
   df_val <- features |> merge(positions, on = c("playId", "gameId"))
   X_val <- as.matrix(df_val[, feature_names])
   dval <- xgb.DMatrix(X_val)
@@ -220,6 +217,7 @@ getResults <- function(params) {
   preds <- predict(bst, dval)
   df_val$prediction <- preds
   names <- players |> select(nflId, displayName) |> rename("QB_nflId" = "nflId")
+  #with results groupby QB
   qb_stats <- df_val |> group_by(playId, gameId) |>
     filter(prediction == max(prediction)) |> ungroup() |>
     group_by(QB_nflId) |> summarise(agreement = mean(is_targetted), throws = n()) 
@@ -228,7 +226,7 @@ getResults <- function(params) {
   passResults <- plays |> select(playId, gameId, passResult, yardsGained) |> filter(
     passResult != ""
   ) |> mutate(completion = ifelse(passResult == "C", 1, 0))
-  
+  #get QB stats
   yard_throw_stats <- df_val |> merge(passResults, on = c("playId", "gameId")) |> group_by(playId, gameId) |>
     mutate(is_first_choice = prediction == max(prediction, na.rm = TRUE)) |>
     ungroup() |>
@@ -253,28 +251,7 @@ getResults <- function(params) {
   }
 getResults(test_params)
 
-predictions <- read.csv("Zhou/XGB_Results.csv")
-#47789
-global_vals <- predictions |> filter(QB_nflId == 47789) |> group_by(playId, gameId)|>
-  mutate(
-    flag = (is_targetted == 1 & prediction == max(prediction, na.rm = TRUE))
-  ) |> ungroup() |> group_by(playId, gameId) |> summarise(
-    threw_to_one = ifelse(TRUE %in% flag, 1, 0),
-    yardage = mean(yardsGained),
-    completed = mean(completion)
-  ) |> ungroup()
-#When throwing to non-top choice: 8.13 ypa, 0.545 completion
-global_vals |> filter(threw_to_one == 0) |> summarise(ypa = mean(yardage), comp = mean(completed))
-
-#When throwing to top choice: 7.06 ypa, 0.737 completion
-global_vals |> filter(threw_to_one == 1) |> summarise(ypa = mean(yardage), comp = mean(completed))
-
-#attr(,"out.attrs")$dim
-#nrounds              eta        max_depth            gamma colsample_bytree min_child_weight 
-#300                  .1             6                0                0.75                1
-#subsample 
-#1 
-
+get_vip <- function(bst){
 
 new_cols = c("QB Movement Angle", "Difference between QB Angle and LoS 5 Frames Prior",
              "Distance from QB", "Difference in Orientation with Closest Defender", 
@@ -293,3 +270,4 @@ vip_plot <- bst |>
   labs(title = title) + theme(plot.title = element_markdown(hjust = 0, size = 13))
 #0.60137121 0.00491559
 ggsave("Zhou/Final/Assets/vip_plot.png", vip_plot)  
+}

@@ -1,3 +1,4 @@
+#build feature set
 library(tidyverse)
 library(data.table)
 library(dtplyr)
@@ -6,6 +7,7 @@ library(xgboost)
 library(caret)
 
 clean_tracking <- function(tracking) {
+  #cleans tracking data so that all is standardized
   tracking|>
     mutate(
       # make all plays go from left to right
@@ -27,6 +29,7 @@ clean_tracking <- function(tracking) {
 }
 
 get_top_n_closest_opponents <- function(pass_frame, n = 1) {
+  #gets the n closest opponents by cross product
   player_pos <- pass_frame |> dplyr::filter(club != "football")
   teams <- unique(player_pos$club)
   
@@ -82,8 +85,8 @@ get_top_n_closest_opponents <- function(pass_frame, n = 1) {
 }
 
 
-
 simulate_movement <- function(n, player, frame, closest_n = 1) {
+  #get point estimate for future position using speed
   player_locs <- frame |> filter(nflId == player)
   player_position <- player_locs$position[1]
   if(!(player_position %in% c("WR",  "TE", "HB", "RB"))){
@@ -108,11 +111,8 @@ simulate_movement <- function(n, player, frame, closest_n = 1) {
 }
 
 get_throw_model <- function(tracking, passing_frames){
-  #generates linear relationship between player distance and aerial throw time
-  #could(and did) do better with gam and other methods but not by much to justify
-  #intepretation differences
-  
-  #if qb not throwing, trick play probably disregard
+  #generates linear relationship between player distance and aerial throw time to get point estimates
+  #of future position
   
   throw_distance <- passing_frames |> merge(positions, by = "nflId") |>
     filter(targeted_receiver == nflId | position == "QB") |> 
@@ -156,10 +156,9 @@ get_game_context <- function(throws, games) {
 }
 
 get_qb_angles <- function(sample_frame) {
+  #gets qb movement vector features
   qb_coords <- sample_frame |> filter(position == "QB") |> select(x, y)
-  #binary for end of game situations - explicitly encode
-  #cross-body throws - orientation and angle of throw
-  # Assuming only one QB per frame:
+  
   qb_x <- qb_coords$x[1]
   qb_y <- qb_coords$y[1]
   
@@ -171,14 +170,11 @@ get_qb_angles <- function(sample_frame) {
 }
 
 project_movement <- function(sample_frame, throw_model, n = 1) {
+  #apply movement projections functions to entire group 
   qb_coords <- sample_frame |> filter(position == "QB") |> select(x, y)
-  #binary for end of game situations - explicitly encode
-  #cross-body throws - orientation and angle of throw
-  # Assuming only one QB per frame:
   qb_x <- qb_coords$x[1]
   qb_y <- qb_coords$y[1]
   
-  # Compute Euclidean distance from each player to the QB, looking at delta x,y now
   sample_frame <- sample_frame |> 
     mutate(qb_x_diff = x - qb_x,
            qb_y_diff = y - qb_y,
@@ -202,7 +198,7 @@ main <- function(){
   player_play <- lazy_dt(read.csv("nfl-big-data-bowl-2025/player_play.csv"))
   games <- lazy_dt(read.csv("nfl-big-data-bowl-2025/games.csv"))
   players <- lazy_dt(read.csv("nfl-big-data-bowl-2025/players.csv"))
-  #left to right cleaning
+  #remove plays with multiple throws
   multi_throws <- tracking |> filter(event == "pass_arrived")  |> select(gameId, playId)  |>
     group_by(gameId, playId) |>
     count(nn = n()) |> filter(nn != 23) |> select(gameId, playId) |> as_tibble()
@@ -220,7 +216,7 @@ main <- function(){
   
   closest <- passing_frames |> merge(positions, by = "nflId")
   num_closest <- 5
-  #throw_model <- get_throw_model(tracking, passing_frames)
+
   #find closest opponent for each player - have to include frameId for multiple throw plays
   closest <- closest |>
     group_by(gameId, playId, frameId) |>
@@ -237,20 +233,6 @@ main <- function(){
       get_qb_angles(df) 
     }) |> bind_rows()
   
-  motion_feats <- crossing(
-    prefix = c("closestOpponent_XSpeed_", "closestOpponent_YSpeed_", "closestOpponent_SDiff_"),
-    i = 1:num_closest
-  ) |> 
-    mutate(name = paste0(prefix, i)) |> 
-    pull(name)
-  
-  distance_feats  <- crossing(
-    prefix = c("closestOpponentDistance_", "closestOpponentX_", "closestOpponentY_", "closestOpponentO_"),
-    i = 1:num_closest
-  ) |> 
-    mutate(name = paste0(prefix, i)) |> 
-    pull(name)
-  qb_feats <- c("qb_dist", "qb_deg", "qb_x_diff", "qb_y_diff")
   
   #add positions
   closest <- closest |> mutate(is_targetted = nflId == targeted_receiver) |> 
@@ -268,21 +250,18 @@ main <- function(){
       lastPlay = down %in% c(3,4)
     )
   
+  #get if under pressure
   pressures <- player_play |> group_by(gameId, playId) |>
     summarise(under_pressure = mean(causedPressure) > 0) |> as_tibble()
 
   closest <- closest |> merge(pressures, on = c("gameId", "playId"))
   
   
-  
+  #reception count as a proxy for receiver skill - unused
   reception_count <- player_play |> group_by(nflId) |> 
     summarise(targetTotal = sum(wasTargettedReceiver))
   closest <- closest |> merge(reception_count, on = "nflId")
   
   
   write.csv(closest,"Zhou/features.csv", row.names = FALSE)
-  #
-  #cv_top1_acc <- run_xgbRanker_cv(closest, features = features, 
-  #                                label = "is_targetted", k = 5, nrounds = 100, top_n = 1)
-    
 }

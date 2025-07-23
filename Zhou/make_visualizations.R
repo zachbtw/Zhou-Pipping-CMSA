@@ -1,3 +1,4 @@
+#Generate visualizations for presentations
 library(gt)
 library(gtExtras)
 library(dplyr)
@@ -14,6 +15,7 @@ library(patchwork)
 library(magick)
 library(ggforce)
 
+#load data
 tracking <- lazy_dt(arrow::read_parquet("nfl-big-data-bowl-2025/tracking.parquet"))
 qb_results <- read.csv("Zhou/Features-Results/QB_Results.csv")
 players <- lazy_dt(read.csv("nfl-big-data-bowl-2025/players.csv"))
@@ -41,7 +43,7 @@ predictable <- qb_results |>  arrange(-agreement) |> head(10)
 unpredictable <- qb_results |>  arrange(agreement) |> head(10) 
 
 
-#Most predictable QBs:
+#Build table for QBs
 buildTable <- function(df, column, title, subtitle, custom_pal = "red") {
   vals <- df[[column]]
   df |>
@@ -52,7 +54,7 @@ buildTable <- function(df, column, title, subtitle, custom_pal = "red") {
     data_color(
       columns = !!sym(column),
       colors = scales::col_numeric(
-        palette = custom_pal,  # gradient from white to your color
+        palette = custom_pal, 
         domain = range(vals, na.rm = TRUE)
       )
     ) |>
@@ -84,28 +86,9 @@ utable <- unpredictable |>
 
   utable |> gtsave(filename = "Zhou/Final/Assets/MostUnPredictable.png", vwidth = 1040, vheight = 898)
 
-#Elbow Plot - 4 clusters:
-
-gapminder_kmpp <- function(k) {
-  
-  kmeans_results <- qb_results |> 
-    select(first_minus_actual_completion, first_minus_actual_yards) |>
-    kcca(k = k, control = list(initcent = "kmeanspp"))
-  
-  kmeans_out <- tibble(
-    clusters = k,
-    total_wss = sum(kmeans_results@clusinfo$size * 
-                      kmeans_results@clusinfo$av_dist)
-  )
-  return(kmeans_out)
-}
 
 
-init_kmeanspp <- qb_results |> 
-  select(first_minus_actual_completion, first_minus_actual_yards) |> 
-  kcca(k = 4, control = list(initcent = "kmeanspp"))
-#Cluster QBs
-
+#Comparing YPA and Comp% to throws agreeing and disagreeing model
 qb_cluster <- qb_results |>
   mutate(
     QB_clusters = as.factor(case_when(
@@ -132,7 +115,8 @@ qb_cluster <- qb_results |>
                                             color = "Cluster",
                                          subtitle = "2022 NFL Season, Weeks 1-9 | Minimum 50 Throws")
 ggsave("Zhou/Final/Assets/QBClustering_nt.png", qb_cluster)
-#Example Play
+
+#Generate Results for the PJ Walker Throw
 
 play_of_interest <- tracking |> filter(gameId == 2022103001, playId == 3953, 
                                        event == "pass_forward") |> as_tibble()
@@ -146,7 +130,7 @@ point_color_map <- c(
 
 preds <- predictions |> select(gameId, playId, nflId, prediction) |> 
   filter(gameId == 2022103001, playId == 3953)
-# Merge predictions
+
 play_with_preds <- play_of_interest |> 
   full_join(preds, by = "nflId") |> mutate(
     short_name = str_extract(displayName, "^\\w") |> str_c(". ", word(displayName, -1)
@@ -171,7 +155,7 @@ pjmoore <- geom_football(league = "NFL", x_trans = 60, y_trans = 26.6667) +
        caption = "Darker Color Implies More Likely Target, Diamond Implies Possible Receivers")
 ggsave("Zhou/Final/Assets/PJMoorePredictions.png", pjmoore)
 
-#build table
+#Get DJ Moore Results
 positions <- players |> select(nflId, position)
 model_outputs <- play_with_preds |> filter(!is.na(prediction)) |> merge(positions, on = c("playId", "gameId"))
   model_outputs |> 
@@ -182,7 +166,7 @@ model_outputs <- play_with_preds |> filter(!is.na(prediction)) |> merge(position
     data_color(
       columns = prediction,
       fn = scales::col_numeric(
-        palette = c("pink", "red"),  # gradient from white to your color
+        palette = c("pink", "red"), 
         domain = range(model_outputs$prediction, na.rm = TRUE)
       )
     ) |>
@@ -198,7 +182,7 @@ model_outputs <- play_with_preds |> filter(!is.na(prediction)) |> merge(position
       prediction = "Relative Scores"
     ) |> gtsave("Zhou/Final/Assets/moore_throw_rankings.png")
 
-  #animate example
+#animated example showing spacing concerns
   viz_game = 2022091111   
   viz_play = 1790
   receiver = 41282
@@ -213,7 +197,7 @@ source("Zhou/generate_features.R")
 poi <- tracking |> filter(gameId == viz_game, playId == viz_play)  |> clean_tracking() 
 
 
-
+#build distance matrix for each player to opponent, gets closest
 opponent_dists <- poi |>
   inner_join(poi, by = "frameId", suffix = c("", "_opp")) |>
   filter(club != club_opp, club_opp != "football", nflId != nflId_opp) |>
@@ -235,7 +219,7 @@ poi <- poi |> mutate(
 
 
 
-# Create 10 copies of the ball_snap rows and bind them with the original
+# Create 10 copies of the ball_snap rows and bind them with the original to simulate a pause
 poi <- bind_rows(
   poi,
   map_dfr(1:50, ~ poi |> filter(event == "ball_snap"))
@@ -282,6 +266,7 @@ L.A. Chargers </span></b>, 2022 NFL Week 1"
 subtitle = "(14:19) (Shotgun) D.Carr pass deep left to<span style = 'color: red;'>
 D. Adams </span>to LAC 23 for 41 yards"
 lineplot_title = "<span style = 'color: red;'><b>Davante Adams </b></span> distance from closest defender"
+#build plot
 field_plot <- geom_football(league = "NFL", x_trans = 60, y_trans = 26.6667) +
   geom_point(data = poi, aes(x = x, y = y, color = club), size = 3) +
   geom_segment(data = poi, aes(x = x, y = y, xend = x_opp, yend = y_opp, color = "black")) + 
@@ -315,13 +300,15 @@ line_plot <- ggplot(receiver_dists,
   transition_reveal(new_frameId)
 line_plot <- animate(line_plot, fps = 5, width = 500, height = 400, renderer = magick_renderer())
 new_gif <- image_append(c(field_plot[1], line_plot[1]))
-
+#combine animations
 for(i in 2:length(field_plot)) {
   combined <- image_append(c(field_plot[i], line_plot[i]))
   new_gif <- c(new_gif, combined)
 }
-new_gif
+
 image_write(new_gif, path = "Zhou/Final/Assets/dadamsthrow.gif")
+
+#get animations at certain frames
 plotLine <- function(df) {
 line_forward <- ggplot(df, 
        aes(x = frameId, y = min_opponent_distance)) +

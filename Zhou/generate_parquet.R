@@ -1,3 +1,4 @@
+#turns csvs into more efficient parquet
 library(arrow)
 library(tidyverse)
 tracking <- read_csv("nfl-big-data-bowl-2025/tracking_week_1.csv") |>

@@ -27,7 +27,7 @@ passing_frames <- passing_frames |>
 teams <- throws |>
   select(gameId, playId, possessionTeam, defensiveTeam)
 
-
+#voronoi areas as spacing
 get_voronoi_areas <- function(play) {
   play <- play |> filter(club != "football")
   #clipping to players to be in-bounds, rarish  and relatively unimpactful
@@ -72,7 +72,7 @@ get_voronoi_areas <- function(play) {
 }
 
 
-
+#get voronoi areas
 passing_frames <- passing_frames |>
   merge(teams, by = c("gameId", "playId")) |> merge(positions, on = "nflId") |>
   filter(!(position %in% c("T", "G", "C"))) |>
@@ -106,6 +106,7 @@ passing_frames |> filter(nflId == targeted_receiver) |> arrange(area) |>
 
 library(gganimate)
 library(colorspace)
+#animate voronoi diagrams and spacing
 animate_voronoi <- function(viz_game, viz_play, team1, team1_color, team2, team2_color,
                             plotPlay = TRUE) {
   recipient <- player_play |> filter(gameId == viz_game, playId == viz_play, wasTargettedReceiver) |>
@@ -166,7 +167,7 @@ animate_voronoi <- function(viz_game, viz_play, team1, team1_color, team2, team2
   catch_index <- which(frame_ids == catch_time)
   throw_index <- which(frame_ids == throw_time)
   snap_index <- which(frame_ids == snap_time)
-  
+  #generate pauses
   state_lengths = rep(1, length(frame_ids))
   state_lengths[c(catch_index, throw_index, snap_index)] = 900
   if(plotPlay) {
@@ -202,9 +203,9 @@ animate_voronoi <- function(viz_game, viz_play, team1, team1_color, team2, team2
       )) |>
       tidyr::uncount(show_time) |>
       arrange(frameId) 
-    #idk why the dplyr solution doesnt work :(
+
     receiver_frames$reveal_time = 1:nrow(receiver_frames) 
-    
+    #add lines which only occur at certain frames in line plot
     receiver_frames <- receiver_frames |>
       mutate(show_throw = ifelse(frameId >= throw_time, 1, 0),
              show_catch = ifelse(frameId >= catch_time, 1, 0),
@@ -254,9 +255,9 @@ for(i in 2:length(play_animated)) {
 new_gif
 anim_save("testing.gif", new_gif)
 
-sample_play
 
-tracking
+
+#animate a high wp play for illustrative purposes
 plays |> filter(homeTeamWinProbabilityAdded  >= .50 | visitorTeamWinProbilityAdded >= .5)
 plays |> select(homeTeamWinProbabilityAdded) |> summarise(n = max(homeTeamWinProbabilityAdded)) |>
   select()
@@ -291,35 +292,12 @@ animated_plot
 anim_save("highWP.gif", animated_plot)
 
 
-feats <- read.csv("Zhou/features.csv")
+#Toy example for difference of vector
 
-feats |> select(
-  closestOpponent_SDiff_1, is_targetted
-)
-
-ggplot(feats, aes(x = closestOpponent_SDiff_1, fill = is_targetted)) +
-  geom_density(alpha = 0.6) +
-  labs(title = "Conditional Density of x by Group") +
-  theme_minimal()
-
-ggplot(feats, aes(y = ifelse(is_targetted, 1, 0), x = closestOpponent_SDiff_1)) +
-  geom_point()
-
-feats |>
-  group_by(gameId, playId) |>
-  filter(closestOpponentDistance_2 == max(closestOpponentDistance_2)) |>    # Keep only rows with max stat per group
-  ungroup() |> 
-  summarise(prop_targeted = mean(is_targetted))
-
-
-library(ggplot2)
-
-# Define vectors
 u <- c(3, 4)
 v <- c(1, 2)
-diff <- u - v  # u - v = (2, 2)
+diff <- u - v  
 
-# Create a data frame for all three vectors
 vectors <- data.frame(
   x = c(2, 0, 1),
   y = c(0, 0, 2),
@@ -331,7 +309,7 @@ points <- data.frame(
   x = c(0,2),
   y = c(0, 0)
 )
-# Plot
+# Plot toy vector
 close <- ggplot(vectors) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = label),
                arrow = arrow(length = unit(0.1, "inches")), size = 0.6) +
@@ -346,35 +324,30 @@ close <- ggplot(vectors) +
 
 ggsave("Zhou/Final/Assets/toyexample.png", close)
 
-library(ggplot2)
-library(grid)
+#Toy example for QB vision features 
 
-# QB and WR positions
+
 qb <- c(2, 0)
 wr <- c(-1, 4)
 
-# QB vision: 30 degrees to the right (from x-axis)
-qb_angle <- 45 * pi / 180  # in radians
+# QB vision: 30 degrees to the right
+qb_angle <- 45 * pi / 180  
 vision_len <- 1
 vision <- c(vision_len * cos(qb_angle), vision_len * sin(qb_angle))
 
-# Vector from QB to WR
 v2 <- wr - qb
-wr_angle <- atan2(v2[2], v2[1])  # angle to WR in radians
+wr_angle <- atan2(v2[2], v2[1])
 
-# Calculate vision_diff (in degrees)
 vision_diff <- (wr_angle - qb_angle) * 180 / pi
-vision_diff <- (vision_diff + 360) %% 360  # normalize between 0-360
-if (vision_diff > 180) vision_diff <- 360 - vision_diff  # smallest angle
+vision_diff <- (vision_diff + 360) %% 360 
+if (vision_diff > 180) vision_diff <- 360 - vision_diff 
 
-# Create arc between qb_angle and wr_angle
 arc_seq <- seq(qb_angle, wr_angle, length.out = 100)
 arc_df <- data.frame(
   x = qb[1] + 0.5 * cos(arc_seq),
   y = qb[2] + 0.5 * sin(arc_seq)
 )
 
-# Data frames
 df_points <- data.frame(
   x = c(qb[1], wr[1]),
   y = c(qb[2], wr[2]),
@@ -390,7 +363,6 @@ df_pass <- data.frame(
   xend = wr[1], yend = wr[2]
 )
 
-# Plot
 Los_wr<- ggplot() +
   geom_point(data = df_points, aes(x, y), size = 2) +
   geom_text(data = df_points, aes(x, y, label = label), vjust = +2, hjust = 1) +
@@ -400,8 +372,8 @@ Los_wr<- ggplot() +
                linetype = "dashed", color = "black") +
   geom_path(data = arc_df, aes(x, y), color = "purple", size = 1) +
   annotate("text",
-           x = qb[1] ,  # move slightly more to the right
-           y = qb[2] + 1,  # move higher
+           x = qb[1] ,  
+           y = qb[2] + 1, 
            label = "Vision
   Diff",
            color = "purple"
