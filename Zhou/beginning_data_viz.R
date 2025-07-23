@@ -345,3 +345,71 @@ close <- ggplot(vectors) +
   theme(plot.title = element_markdown(hjust = 0.5), legend.position = "bottom") 
 
 ggsave("Zhou/Final/Assets/toyexample.png", close)
+
+library(ggplot2)
+library(grid)
+
+# QB and WR positions
+qb <- c(2, 0)
+wr <- c(-1, 4)
+
+# QB vision: 30 degrees to the right (from x-axis)
+qb_angle <- 45 * pi / 180  # in radians
+vision_len <- 1
+vision <- c(vision_len * cos(qb_angle), vision_len * sin(qb_angle))
+
+# Vector from QB to WR
+v2 <- wr - qb
+wr_angle <- atan2(v2[2], v2[1])  # angle to WR in radians
+
+# Calculate vision_diff (in degrees)
+vision_diff <- (wr_angle - qb_angle) * 180 / pi
+vision_diff <- (vision_diff + 360) %% 360  # normalize between 0-360
+if (vision_diff > 180) vision_diff <- 360 - vision_diff  # smallest angle
+
+# Create arc between qb_angle and wr_angle
+arc_seq <- seq(qb_angle, wr_angle, length.out = 100)
+arc_df <- data.frame(
+  x = qb[1] + 0.5 * cos(arc_seq),
+  y = qb[2] + 0.5 * sin(arc_seq)
+)
+
+# Data frames
+df_points <- data.frame(
+  x = c(qb[1], wr[1]),
+  y = c(qb[2], wr[2]),
+  label = c("QB", "WR")
+)
+df_vision <- data.frame(
+  x = qb[1], y = qb[2],
+  xend = qb[1] + vision[1], yend = qb[2] + vision[2],
+  labels = c("QB Vision")
+)
+df_pass <- data.frame(
+  x = qb[1], y = qb[2],
+  xend = wr[1], yend = wr[2]
+)
+
+# Plot
+Los_wr<- ggplot() +
+  geom_point(data = df_points, aes(x, y), size = 2) +
+  geom_text(data = df_points, aes(x, y, label = label), vjust = +2, hjust = 1) +
+  geom_segment(data = df_vision, aes(x = x, y = y, xend = xend, yend = yend,  color = labels),
+               arrow = arrow(length = unit(0.1, "in")), linewidth = .6) +
+  geom_segment(data = df_pass, aes(x = x, y = y, xend = xend, yend = yend),
+               linetype = "dashed", color = "black") +
+  geom_path(data = arc_df, aes(x, y), color = "purple", size = 1) +
+  annotate("text",
+           x = qb[1] ,  # move slightly more to the right
+           y = qb[2] + 1,  # move higher
+           label = "Vision
+  Diff",
+           color = "purple"
+  ) +
+  theme_minimal() +
+  labs(title = "Difference Between QB LoS and Pass Angle", color = "Vectors:") +
+  xlim(-2, 5) +
+  ylim(-2, 5) +
+  coord_fixed()+
+  scale_color_manual(values = c("QB Vision" = "blue")) +
+  theme(plot.title = element_markdown(hjust = 0.5), legend.position = "bottom")

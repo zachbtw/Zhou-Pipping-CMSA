@@ -80,7 +80,14 @@ run_xgbRanker_cv <- function(df, features, label, params, k = 5, top_n = 1) {
 
 main <- function(){
   features <- read.csv("Zhou/Features-Results/features.csv")
-  num_closest = 5
+  z_features <- read.csv("Zhou/Features-Results/zachfeatures.csv") |> group_by(gameId, playId) |>
+    mutate(throw_frame = frameId == max(frameId),
+           qb_vision_distlag5 = lag(qb_vision_distlag1, 4),
+           vision_difflag5 = lag(vision_difflag1, 4)) |> ungroup() |>
+    filter(throw_frame == TRUE) |>
+    rename(nflId = runnerId)
+  features <- features |> merge(z_features, by = c("gameId", "playId", "nflId"))
+  num_closest = 3
   #"closestOpponent_XSpeed_", "closestOpponent_YSpeed_", "closestOpponent_SDiff_"
   motion_feats <- crossing(
     prefix = c("closestOpponent_XSpeed_", "closestOpponent_YSpeed_","closestOpponent_SDiff_",
@@ -91,8 +98,8 @@ main <- function(){
     pull(name)
   position_feats <- paste0("position_", c("RB", "TE", "WR"))
   feature_names <- c(motion_feats, position_feats, "qb_dist", "qb_deg", "scorediff",
-                     "absoluteYardlineNumber", "time_left", "quarter","yardsToGo", "down",
-                     "givesFirst", "lastPlay")
+                     "absoluteYardlineNumber", "time_left", "quarter","yardsToGo.x", "down",
+                     "givesFirst", "lastPlay", "n_defenders_ahead", "qb_vision_distlag5", "vision_difflag5")
   hyperparam_grid <- expand.grid(
     nrounds = seq(from = 100, to = 300, by = 100),
     eta = c(0.025, 0.05, 0.1, 0.3),
@@ -143,7 +150,14 @@ test_params <- list(
 )
 getResults <- function(params) {
   features <- read.csv("Zhou/Features-Results/features.csv")
-  num_closest = 5
+  z_features <- read.csv("Zhou/Features-Results/zachfeatures.csv") |> group_by(gameId, playId) |>
+    mutate(throw_frame = frameId == max(frameId),
+           qb_vision_distlag5 = lag(qb_vision_distlag1, 4),
+           vision_difflag5 = lag(vision_difflag1, 4)) |> ungroup() |>
+    filter(throw_frame == TRUE) |>
+    rename(nflId = runnerId)
+  features <- features |> merge(z_features, by = c("gameId", "playId", "nflId"))
+  num_closest = 3
   #"closestOpponent_XSpeed_", "closestOpponent_YSpeed_", "closestOpponent_SDiff_"
   motion_feats <- crossing(
     prefix = c("closestOpponent_XSpeed_", "closestOpponent_YSpeed_","closestOpponent_SDiff_",
@@ -154,8 +168,8 @@ getResults <- function(params) {
     pull(name)
   position_feats <- paste0("position_", c("RB", "TE", "WR"))
   feature_names <- c(motion_feats, position_feats, "qb_dist", "qb_deg", "scorediff",
-                     "absoluteYardlineNumber", "time_left", "quarter","yardsToGo", "down",
-                     "givesFirst", "lastPlay")
+                                       "absoluteYardlineNumber", "time_left", "quarter","yardsToGo.x", "down",
+                                       "givesFirst", "lastPlay", "n_defenders_ahead", "qb_vision_distlag5", "vision_difflag5")
 
   # get Results
   label = "is_targetted"
@@ -189,7 +203,7 @@ getResults <- function(params) {
   player_play <- lazy_dt(read.csv("nfl-big-data-bowl-2025/player_play.csv"))
   games <- lazy_dt(read.csv("nfl-big-data-bowl-2025/games.csv"))
   players <- lazy_dt(read.csv("nfl-big-data-bowl-2025/players.csv"))
-  #0.516554628 0.008462518
+  #0.585944992 0.003273449
   positions <- player_play |> select(gameId, playId, nflId) |> merge(players |> select(nflId, position), on = "nflId") |>
     filter(position == "QB") |> rename(QB_nflId = nflId) |> select(playId, gameId, QB_nflId)
   features
@@ -261,14 +275,13 @@ global_vals |> filter(threw_to_one == 1) |> summarise(ypa = mean(yardage), comp 
 #subsample 
 #1 
 
-var_importance <- bst |> vip() |>
-  xlab(rep("a",10))
-new_cols = c("Distance from QB", "Difference in Orientation with Closest Defender",
-             "Distance from Closest Defender", "Angle between QB and Receiver",
-             "Distance from 2nd Closest Defender", "Speed Vector Difference with 2nd Closest Defender",
-             "Difference in Orientation with 2nd Closest Defender", "Difference in Orientation with 4th Closest Defender",
-             "Speed Vector Difference with Closest Defender", "Difference in Orientation with 3rd Closest Defender")
-title = "**Defender Positioning and Receiver Distance Are Key to Deciding Throwing Target**"
+
+new_cols = c("QB Movement Angle", "Difference between QB Angle and LoS 5 Frames Prior",
+             "Distance from QB", "Difference in Orientation with Closest Defender", 
+             "Distance from Closest Defender", "# of Defenders in 5-yard Radius Facing Receiver Movement",
+             "Difference in Orientation with 2nd Closest Defender", "Difference in Orientation with 3rd Closest Defender",
+             "Speed Vector Difference with 2nd Closest Defender", "Distance from 3rd Closest Defender")
+title = "**The QB Movement Vector is Key to Deciding Throwing Target**"
 vip_plot <- bst |> 
   vi() |> 
   head(10) |> 
@@ -276,7 +289,7 @@ vip_plot <- bst |>
   ggplot(aes(x = Importance, y = fct_reorder(Variable, Importance))) +
   geom_col() +
   labs(x = "Importance", y = "Feature") +
-  theme_minimal() 
-  #labs(title = title) + theme(plot.title = element_markdown(hjust = 0.5, size = 13))
-
-ggsave("Zhou/Final/Assets/vip_plot_notitle.png", vip_plot)  
+  theme_minimal()  +
+  labs(title = title) + theme(plot.title = element_markdown(hjust = 0, size = 13))
+#0.60137121 0.00491559
+ggsave("Zhou/Final/Assets/vip_plot.png", vip_plot)  

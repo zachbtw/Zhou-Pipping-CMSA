@@ -18,7 +18,7 @@ tracking <- lazy_dt(arrow::read_parquet("nfl-big-data-bowl-2025/tracking.parquet
 qb_results <- read.csv("Zhou/Features-Results/QB_Results.csv")
 players <- lazy_dt(read.csv("nfl-big-data-bowl-2025/players.csv"))
 player_play <- lazy_dt(read.csv("nfl-big-data-bowl-2025/player_play.csv"))
-predictions <- read.csv("Zhou/Features-Results/XGB_Results.csv")
+predictions <- read.csv("Zhou//Features-Results/XGB_Results.csv")
 
 teams <- player_play |> select(nflId, teamAbbr) |> distinct() |> as_tibble()
 qb_results <- qb_results |> left_join(teams, by = c("QB_nflId"= "nflId")) 
@@ -76,13 +76,13 @@ ptable <- predictable |>
   buildTable("agreement", "**Top 10 Most Predictable QBs**", 
              "2022 NFL Season, Weeks 1-9 - Minimum 50 Throws", custom_pal = c("lightblue", "blue"))
 
-  gtsave(filename = "Zhou/Final/Assets/MostPredictable.png", vwidth = 1040, vheight = 898)
+  ptable |> gtsave(filename = "Zhou/Final/Assets/MostPredictable.png", vwidth = 1040, vheight = 898)
 
 utable <- unpredictable |> 
   buildTable("agreement", "**Top 10 Least Predictable QBs**", 
              "2022 NFL Season, Weeks 1-9 - Minimum 50 Throws", custom_pal =  c("red", "pink"))
 
-  gtsave(filename = "Zhou/Final/Assets/MostUnPredictable.png", vwidth = 1040, vheight = 898)
+  utable |> gtsave(filename = "Zhou/Final/Assets/MostUnPredictable.png", vwidth = 1040, vheight = 898)
 
 #Elbow Plot - 4 clusters:
 
@@ -109,27 +109,29 @@ init_kmeanspp <- qb_results |>
 qb_cluster <- qb_results |>
   mutate(
     QB_clusters = as.factor(case_when(
-      first_minus_actual_yards < -1.5 ~ 1,
-      first_minus_actual_yards > 0.5 ~ 3,
+      first_minus_actual_yards < -1 ~ 1,
+      first_minus_actual_yards > 1 ~ 3,
       .default = 2
     )),
-    short_name = str_extract(displayName, "^\\w") |> str_c(". ", word(displayName, -1))
+    short_name = str_extract(displayName, "^\\w") |> str_c(". ", word(displayName, -1)),
+    display_name = ifelse(QB_clusters %in% c(1, 3), short_name, "")
   ) |>
   ggplot(aes(y = first_minus_actual_completion, x = first_minus_actual_yards,
              color = QB_clusters)) +
   geom_point(size = 1) +
-  geom_text(aes(label = short_name), vjust = 1.5, size = 2, show.legend = FALSE, fontface = "bold") +
+  geom_text(aes(label = display_name), vjust = 1.5, size = 3, show.legend = FALSE, fontface = "bold") +
   xlab("Yards Per Attempt(YPA) Difference: Throws to Predicted vs. Other Targets") + 
   ylab("Comp% Difference: Throws to Predicted vs. Other Targets") + 
-  geom_mark_ellipse(aes(filter = QB_clusters == 1, label = "Having Success with Atypical Passes")) +
+  geom_mark_ellipse(aes(filter = QB_clusters == 1, label = "Having Success with Atypical Passes"),
+                    label.buffer = unit(40, 'mm')) +
   geom_mark_ellipse(aes(filter = QB_clusters == 3, label = "Potential Optimization by Throwing More Conventional Passes")) +
   theme_minimal() +
   theme(legend.position = "bottom",
-        plot.title = element_markdown(hjust = 0.5, size = 16, family = "Roboto"),
-        plot.subtitle = element_markdown(hjust = 0.5, size = 10)) + labs(title = "**Opportunities for Optimization in QB Target Decision-Making**",
+        plot.title = element_markdown(hjust = 0.5, size = 16),
+        plot.subtitle = element_markdown(hjust = 0.5, size = 10)) + labs(title = "",
                                             color = "Cluster",
                                          subtitle = "2022 NFL Season, Weeks 1-9 | Minimum 50 Throws")
-ggsave("Zhou/Final/Assets/QBClustering.png", qb_cluster)
+ggsave("Zhou/Final/Assets/QBClustering_nt.png", qb_cluster)
 #Example Play
 
 play_of_interest <- tracking |> filter(gameId == 2022103001, playId == 3953, 
@@ -153,7 +155,7 @@ play_with_preds <- play_of_interest |>
 pjmoore <- geom_football(league = "NFL", x_trans = 60, y_trans = 26.6667) +
   geom_text(data = filter(play_with_preds, !is.na(prediction)), 
             aes(x = x, y = y, label = short_name), 
-            color = "white", size = 1.5, vjust = 3) +
+            color = "white", size = 3, vjust = 1.5) +
   geom_point(data = filter(play_with_preds, !is.na(prediction)), 
              aes(x = x, y = y, fill = prediction), shape = 23, stroke = 1,color = "black",
              size = 2) +
