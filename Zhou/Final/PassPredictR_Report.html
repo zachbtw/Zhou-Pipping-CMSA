@@ -121,7 +121,7 @@ window.Quarto = {
 <p><img src="Assets/Slides_Assets/DJ_MOORE_TIES_THE_GAME.gif"></p>
 </div>
 <p>While a fantastic throw and catch, with 20 seconds left, P.J. Walker has several options, like to throw to a closer receiver and quickly get out of bounds to gain some yardage for a more manageable attempt for a touchdown. Given the available safer choices, what would we expect other quarterbacks to do in this situation? Would they play it safe and throw to the closer man, or make the same decision to throw it down the field into double coverage for a chance to tie the game, despite the risk?</p>
-<p>This paper aims to explore questions like these by modeling who we would expect the average quarterback to throw to given a game situation. By contextualizing throwing decisions, we can determine which players deviate from our expectations the most, if this deviation leads to stronger or weaker performances, and provide better nuance to assess throwing players. for particularly harmful interceptions, we can contextualize the decision by determining whether other quarterbacks would make that same decision.</p>
+<p>This paper aims to explore questions like these by modeling who the expected receiver would be given a game situation. By contextualizing throwing decisions, we can determine which players deviate from our expectations the most, if this deviation leads to stronger or weaker performances, and provide better nuance to assess throwing players. For example, for particularly harmful interceptions, we can contextualize the decision by determining whether other quarterbacks would make that same decision.</p>
 <section id="data" class="level3">
 <h3 class="anchored" data-anchor-id="data">Data</h3>
 <p>In modeling this decision-making process, this work uses tracking and event data from the 2024 Big Data Bowl,<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> which covers players from the first 9 weeks of the 2022 NFL Season.</p>
@@ -133,7 +133,7 @@ window.Quarto = {
 <li><p><strong>Game Data:</strong> Data which describes information about the such as the teams playing, date and time of the game, and final scorelines.</p></li>
 <li><p><strong>Play Data:</strong> Data describing the context and result of each play within each game, including the quarter, down, yards to go, pre-snap win probabilities, and formations.</p></li>
 <li><p><strong>Player Play Data:</strong> Data describing statistics for each player involved in a play, such as what route was ran by the player or an indicator describing if the player was targeted for a throw.</p></li>
-<li><p><strong>Tracking Data:</strong> Data describing the locations of players and the football at every frame of a play, including xy coordinates, player orientation, movement speed, and direction.</p></li>
+<li><p><strong>Tracking Data:</strong> Data describing the locations of players and the football at every frame of a play, including x, y coordinates, player orientation, movement speed, and direction.</p></li>
 </ul>
 <p>In this analysis, we exclusively look at throwing plays with an obvious target, removing spikes and throwaways.</p>
 </section>
@@ -180,7 +180,7 @@ window.Quarto = {
 <tbody>
 <tr class="odd">
 <td><strong>Recipient Features</strong></td>
-<td>- <em>Distance (x, y, magnitude)*</em> <br> - <em>Speed Differences (x, y, magnitude)*</em> <br> - <em>Orientation Differences*</em> <br> - <em>Speed Vector Differences*</em> <br> - Receiver Position <br> - First Down Indicator <br> - Number of Defenders in 5 Yard Radius Facing Receiver Movement<br> - Angle between QB Orientation and Receiver 5 Frames Prior <br></td>
+<td>- <em>Distance (x, y, magnitude)*</em> <br> - <em>Speed Differences (x, y, magnitude)*</em> <br> - <em>Orientation Differences*</em> <br> - <em>Speed Vector Distances*</em> <br> - Receiver Position <br> - First Down Indicator <br> - Number of Defenders in 5 Yard Radius Facing Receiver Movement<br> - Angle between QB Orientation and Receiver 5 Frames Prior <br></td>
 </tr>
 <tr class="even">
 <td><strong>Quarterback Features</strong></td>
@@ -239,7 +239,7 @@ window.Quarto = {
 <p>Given the importance of the decision to target a quarterback, we contextualize the decisions behind these throws by building a ranking model using XGBoost on hand-craft features like speed velocity difference and derivations from line of sight, generating a model accuracy of 59.9%, significantly stronger than both the naive baseline(20%) as well as throws to the most open receiver at time of throw(31.6%). Through this model, we are able to derive a number of metrics surrounding the decision-making ability of a quarterback, such as point estimates for the predictability of a quarterback as well as finding opportunities for potential improvement in decision-making.</p>
 <section id="limitations-and-future-work" class="level3">
 <h3 class="anchored" data-anchor-id="limitations-and-future-work">Limitations and Future Work</h3>
-<p>There are still a strong number of opportunities to add more features and refine the model. For example, it may be worth looking into receiver skill as a decision, as quarterbacks are more likely to throw to their number one receiver. We also only use a binary estimate for pressure, while future work should expand and add nuance to what the pressure actually looked like. Likewise, future work should consider pre-snap factors like coverage mismatches to update target probabilities during a throw</p>
+<p>There are still a strong number of opportunities to add more features and refine the model. For example, it may be worth looking into receiver skill as a decision, as quarterbacks are more likely to throw to their number one receiver. We also only use a binary estimate for pressure, while future work should expand and add nuance to what the pressure actually looked like. Likewise, future work should consider pre-snap factors like coverage mismatches to update target probabilities during a throw. Additionally, the usage of proxies for both future separation and quarterback line of sight as well as the relatively can add bias into the model which could affect model results.</p>
 <p>In our applications of the model with our derivations of predictability and quarterback optimization, the differences in situations that quarterbacks will face will inherently add bias to these point estimates, so future work should account for the quality of the other decisions.</p>
 <p>We believe that this model can be used with other factors to generate stronger estimates of quarterback decision-making ability. For example, if a quarterback was constantly making the optimal play in terms of expected yardage but these targets are not the expected target, like a similar approach in soccer<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>, we can generate a proxy for this quarterback’s ability to find strong, hard to find throws.</p>
 </section>

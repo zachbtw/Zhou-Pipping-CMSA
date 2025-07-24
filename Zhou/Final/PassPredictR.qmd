@@ -1,12 +1,12 @@
 ---
-title: "QBReadR: Contextualizing NFL Throwing Decisions Through Modeling Receiver Choice"
+title: "PassPredictR: Contextualizing NFL Throwing Decisions Through Modeling Receiver Choice"
 editor: visual
 author:
 - name: Lou Zhou
   affiliation: Rice University
 - name: Zachary Pipping
   affiliation: University of Florida
-- name: Karim Kassam
+- name: Dr. Karim Kassam
   affiliation: Teamworks, Outside Advisor
 format:
   revealjs: 
@@ -106,7 +106,7 @@ format:
 
 | Feature Category | Features |
 |-----------------|-------------------------------------------------------|
-| **Recipient Features** | \- *Distance (x, y, magnitude)\** <br> - *Speed Differences (x, y, magnitude)\** <br> - *Orientation Differences\** <br> - *Speed Vector Differences\** <br> - Receiver Position <br> - First Down Indicator <br> - Number of Defenders in 5 Yard Radius Facing Receiver Movement<br> - Angle between QB Orientation and Receiver 5 Frames Prior <br>  |
+| **Recipient Features** | \- *Distance (x, y, magnitude)\** <br> - *Speed Differences (x, y, magnitude)\** <br> - *Orientation Differences\** <br> - *Speed Vector Distance\** <br> - Receiver Position <br> - First Down Indicator <br> - Number of Defenders in 5 Yard Radius Facing Receiver Movement<br> - Angle between QB Orientation and Receiver 5 Frames Prior <br>  |
 | **Quarterback Features** | \- Distance from Receiver <br> - Movement Vector <br> - Under Pressure Indicator |
 | **Game Context** | \- Quarter <br> - Down and Distance <br> - Score Differential <br> - Time Remaining |
 
@@ -142,33 +142,25 @@ format:
 <img src="Assets/Slides_Assets/QBClustering_nt.png"/>
 :::
 
-## Discussion {.smaller}
+## Discussion{.small}
 
 ::: fragment
 -   Able to model the likely target using an XGBoost Ranking Model with strong predictive power
-    -   Model can still be made stronger by incorporating newer factors like receiver skill
-    -   Can then contextualize throws with comparisons to the likely target
+    -   Improvements from incorporating newer factors like receiver skill and pre-snap factors
 :::
 
 ::: fragment
--   Comparing YPA and Completion Percentage of Throws when throwing to the likely receiver vs. other receivers is far from perfect
-    -   Since QBs will face different game states, some may be faced with more situations where the likely throw is the only good option
-    -   YPA treats interceptions and incompletions the same, potentially overvaluing players who throw risky, interception-prone throws
+-   Reliance on proxies which could add bias to results
+    -   Smaller dataset, only about 200 throws per quarterback
+    -   Would like to model quarterback development throughout their career
+  
 :::
 
-::: fragment
--   Future work should be done to model yardage and completion percentage for potential receivers to determine the optimal decision
-    -   Can use ranking model to determine whether it is common to find this optimal decision
-    -   Rewarding players who find strong but hard to see passes
-:::
 
-::: fragment
--   Potential use of pre-snap factors(e.g. coverage mismatches) to update target probabilities
-:::
 
 ## Further Information
 
--   Acknowledgements: Karim Kassam, Quang Nguyen, Ron Yurko, CMU Statistics
+-   Acknowledgements: Dr. Karim Kassam, Quang Nguyen, Dr. Ron Yurko, CMU Statistics
 
 -   Code: <https://github.com/zachbtw/Zhou-Pipping-CMSA>
 
@@ -198,6 +190,13 @@ format:
 
 ## Appendix D - Optimal QB Vision Derivation
 ::: {style="text-align: center;"}
-<img src="Assets/Slides_Assets/Angle_diff_Histogram.png"/>
+<img src="Assets/Slides_Assets/Angle_diff_Histogram.png" height = 600/>
+:::
+
+## Appendix E - Head Tracking Proof of Concept
+
+::: {style="text-align: center;"}
+<img src="Assets/Slides_Assets/lionsplay.gif"/> 
+<img src="Assets/Slides_Assets/washingtonpass.gif"/>
 :::
 

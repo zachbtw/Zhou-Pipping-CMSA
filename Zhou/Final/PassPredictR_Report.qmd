@@ -25,7 +25,7 @@ The most important decision made by a quarterback during a throwing play in foot
 
 While a fantastic throw and catch, with 20 seconds left, P.J. Walker has several options, like to throw to a closer receiver and quickly get out of bounds to gain some yardage for a more manageable attempt for a touchdown. Given the available safer choices, what would we expect other quarterbacks to do in this situation? Would they play it safe and throw to the closer man, or make the same decision to throw it down the field into double coverage for a chance to tie the game, despite the risk?
 
-This paper aims to explore questions like these by modeling who we would expect the average quarterback to throw to given a game situation. By contextualizing throwing decisions, we can determine which players deviate from our expectations the most, if this deviation leads to stronger or weaker performances, and provide better nuance to assess throwing players. for particularly harmful interceptions, we can contextualize the decision by determining whether other quarterbacks would make that same decision.
+This paper aims to explore questions like these by modeling who the expected receiver would be given a game situation. By contextualizing throwing decisions, we can determine which players deviate from our expectations the most, if this deviation leads to stronger or weaker performances, and provide better nuance to assess throwing players. For example, for particularly harmful interceptions, we can contextualize the decision by determining whether other quarterbacks would make that same decision.
 
 ### Data
 
@@ -45,7 +45,7 @@ Within this dataset, there are four different subtypes of data:
 
 -   **Player Play Data:** Data describing statistics for each player involved in a play, such as what route was ran by the player or an indicator describing if the player was targeted for a throw.
 
--   **Tracking Data:** Data describing the locations of players and the football at every frame of a play, including xy coordinates, player orientation, movement speed, and direction.
+-   **Tracking Data:** Data describing the locations of players and the football at every frame of a play, including x, y coordinates, player orientation, movement speed, and direction.
 
 In this analysis, we exclusively look at throwing plays with an obvious target, removing spikes and throwaways.
 
@@ -84,8 +84,7 @@ By adding speed and orientation, this distance correlates stronger with separati
 It's no secret that where the quarterback is looking plays a huge part in his decision making process, and therefore in predicting where he'll be throwing. It was crucial to our model's completeness, therefore, to develop some way to diagnose where the QB is looking in relation to the various passing options.
 
 ::: text-center
-<img src="Assets/Slides_Assets/vision_example.gif" width=800>
-<img src="Assets/Slides_Assets/Angle_diff_Histogram.png" height=300>
+<img src="Assets/Slides_Assets/vision_example.gif" width="800"/> <img src="Assets/Slides_Assets/Angle_diff_Histogram.png" height="300"/>
 :::
 
 ### Final Feature Set
@@ -94,7 +93,7 @@ In conjunction with these two metrics, we derive a feature set which captures th
 
 | Feature Category | Features |
 |------------------------------------|------------------------------------|
-| **Recipient Features** | \- *Distance (x, y, magnitude)\** <br> - *Speed Differences (x, y, magnitude)\** <br> - *Orientation Differences\** <br> - *Speed Vector Differences\** <br> - Receiver Position <br> - First Down Indicator <br> - Number of Defenders in 5 Yard Radius Facing Receiver Movement<br> - Angle between QB Orientation and Receiver 5 Frames Prior <br> |
+| **Recipient Features** | \- *Distance (x, y, magnitude)\** <br> - *Speed Differences (x, y, magnitude)\** <br> - *Orientation Differences\** <br> - *Speed Vector Distances\** <br> - Receiver Position <br> - First Down Indicator <br> - Number of Defenders in 5 Yard Radius Facing Receiver Movement<br> - Angle between QB Orientation and Receiver 5 Frames Prior <br> |
 | **Quarterback Features** | \- Distance from Receiver <br> - Movement Vector <br> - Under Pressure Indicator |
 | **Game Context** | \- Quarter <br> - Down and Distance <br> - Score Differential <br> - Time Remaining |
 
@@ -156,7 +155,7 @@ Given the importance of the decision to target a quarterback, we contextualize t
 
 ### Limitations and Future Work
 
-There are still a strong number of opportunities to add more features and refine the model. For example, it may be worth looking into receiver skill as a decision, as quarterbacks are more likely to throw to their number one receiver. We also only use a binary estimate for pressure, while future work should expand and add nuance to what the pressure actually looked like. Likewise, future work should consider pre-snap factors like coverage mismatches to update target probabilities during a throw
+There are still a strong number of opportunities to add more features and refine the model. For example, it may be worth looking into receiver skill as a decision, as quarterbacks are more likely to throw to their number one receiver. We also only use a binary estimate for pressure, while future work should expand and add nuance to what the pressure actually looked like. Likewise, future work should consider pre-snap factors like coverage mismatches to update target probabilities during a throw. Additionally, the usage of proxies for both future separation and quarterback line of sight as well as the relatively  can add bias into the model which could affect model results. 
 
 In our applications of the model with our derivations of predictability and quarterback optimization, the differences in situations that quarterbacks will face will inherently add bias to these point estimates, so future work should account for the quality of the other decisions.
 

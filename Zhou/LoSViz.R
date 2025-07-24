@@ -177,13 +177,17 @@ add_pauses <- function(df){
     mutate(new_frameId = (row_number() - 1) %/% 2 + 1)
 }
 rec_colors = c(
-"42358" = "#9B870C",
-"46109" = "red")
+  "Melvin Gordon" = "#9B870C",
+  "Courtland Sutton" = "red")
+
+filtered_distances <-filtered_distances |> mutate(
+  names = ifelse(recId == 46109, "Courtland Sutton", "Melvin Gordon")
+)
 
 max_dist = max(abs(filtered_distances$qb_vision_dist), na.rm = TRUE)
 filtered_distances <- add_pauses(filtered_distances)
 line_plot <- filtered_distances |> ggplot() +
-  geom_line(aes(x = frameId, y = abs(qb_vision_dist), color = as.character(recId), group = recId), size = 1) +
+  geom_line(aes(x = frameId, y = abs(qb_vision_dist), color = names, group = recId), size = 1) +
   scale_color_manual(values = rec_colors) + 
   geom_vline(xintercept = snap_frame, linetype = "dashed", color = "red") +
   geom_vline(xintercept = ball_release, linetype = "dashed", color = "red") +
@@ -197,7 +201,7 @@ line_plot <- filtered_distances |> ggplot() +
     title = "Distance from QB Vision Line Over Time",
     x = "Frame Number",
     y = "Absolute Distance",
-    color = "Player ID"
+    color = "Player"
   ) +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
