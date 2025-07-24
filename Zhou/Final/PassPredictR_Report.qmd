@@ -87,6 +87,10 @@ It's no secret that where the quarterback is looking plays a huge part in his de
 <img src="Assets/Slides_Assets/vision_example.gif" width="800"/> <img src="Assets/Slides_Assets/Angle_diff_Histogram.png" height="300"/>
 :::
 
+In this play for the Broncos in 2022, we're able to see the change in angle of the quarterback's orientation, and line of sight (LoS) as a result, making his first read to Melvin Gordon (Gold), and then to Courtland Sutton (Red), with plenty of potential for space, as outlined above. When Russell Wilson sees this, he makes the throw almost immediately for a first down. The importance of a receiver's distance in yards from the quarterback's LoS is on full display here, as we see a sudden dip in that distance to Sutton as Wilson sees him and makes the throw.
+
+Another valuable feature in determining where a quarterback will throw is the angular difference between the pass angle and line of sight. When we account for distance or angle differential alone, the targeted receiver is at least closest in one of the two factors 44.6% of all frames throughout a play. Although this metric is far from robust, it still provides a very helpful proxy for understanding the steps and options a quarterback goes through throughout a play, and is helpful to build our model.
+
 ### Final Feature Set
 
 In conjunction with these two metrics, we derive a feature set which captures the game-state in three categories: the receiver, the quarterback, and the game context.
@@ -155,7 +159,7 @@ Given the importance of the decision to target a quarterback, we contextualize t
 
 ### Limitations and Future Work
 
-There are still a strong number of opportunities to add more features and refine the model. For example, it may be worth looking into receiver skill as a decision, as quarterbacks are more likely to throw to their number one receiver. We also only use a binary estimate for pressure, while future work should expand and add nuance to what the pressure actually looked like. Likewise, future work should consider pre-snap factors like coverage mismatches to update target probabilities during a throw. Additionally, the usage of proxies for both future separation and quarterback line of sight as well as the relatively  can add bias into the model which could affect model results. 
+There are still a strong number of opportunities to add more features and refine the model. For example, it may be worth looking into receiver skill as a decision, as quarterbacks are more likely to throw to their number one receiver. We also only use a binary estimate for pressure, while future work should expand and add nuance to what the pressure actually looked like. Likewise, future work should consider pre-snap factors like coverage mismatches to update target probabilities during a throw. Additionally, the usage of proxies for both future separation and quarterback line of sight as well as the relatively can add bias into the model which could affect model results.
 
 In our applications of the model with our derivations of predictability and quarterback optimization, the differences in situations that quarterbacks will face will inherently add bias to these point estimates, so future work should account for the quality of the other decisions.
 
