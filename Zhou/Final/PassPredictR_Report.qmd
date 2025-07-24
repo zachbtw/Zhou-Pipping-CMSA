@@ -83,6 +83,11 @@ By adding speed and orientation, this distance correlates stronger with separati
 
 It's no secret that where the quarterback is looking plays a huge part in his decision making process, and therefore in predicting where he'll be throwing. It was crucial to our model's completeness, therefore, to develop some way to diagnose where the QB is looking in relation to the various passing options.
 
+::: text-center
+<img src="Assets/Slides_Assets/vision_example.gif" width=800>
+<img src="Assets/Slides_Assets/Angle_diff_Histogram.png" height=300>
+:::
+
 ### Final Feature Set
 
 In conjunction with these two metrics, we derive a feature set which captures the game-state in three categories: the receiver, the quarterback, and the game context.

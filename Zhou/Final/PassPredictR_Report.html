@@ -116,35 +116,36 @@ window.Quarto = {
 
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
-<p>The most important decision made by a quarterback during a throwing play in football is the throw target. In the same play, a throw to one receiver may lead to a game-winning touchdown, but a throw to another receiver could cause an interception going the other way. We can see this decision-making process in a game-tying DJ Moore touchdown throw against the Atlanta Falcons.</p>
+<p>The most important decision made by a quarterback during a throwing play in football is the throw target. In the same play, deciding to throw to one receiver may lead to a game-altering touchdown, and a throw to another receiver may result in a game-ending turnover. We can see this decision-making process in a game-tying touchdown throw from P.J. Walker to D.J. Moore against the Atlanta Falcons.</p>
 <div class="text-center">
 <p><img src="Assets/Slides_Assets/DJ_MOORE_TIES_THE_GAME.gif"></p>
 </div>
-<p>While a fantastic throw and catch, with 20 seconds left, DJ Moore still has the option to throw to a closer receiver and quickly get out of bounds to gain yardage. With this safer choice, what would we expect other quarterbacks to do in this situation? Would they play it safer and throw to the closer man, or would they throw it down the field into double coverage for a game-tying touchdown, risking a game-losing interception?</p>
-<p>This paper aims to explore questions like these by modeling what we would expect the average quarterback given a game situation. By contextualizing throwing decisions, we can determine which players deviate from this expectation the most and if this deviation leads to stronger or weaker performance as well as provide better nuance to throwing players; for particularly harmful interceptions, we can contextualize the decision by determining whether other quarterbacks would make that same decision.</p>
+<p>While a fantastic throw and catch, with 20 seconds left, P.J. Walker has several options, like to throw to a closer receiver and quickly get out of bounds to gain some yardage for a more manageable attempt for a touchdown. Given the available safer choices, what would we expect other quarterbacks to do in this situation? Would they play it safe and throw to the closer man, or make the same decision to throw it down the field into double coverage for a chance to tie the game, despite the risk?</p>
+<p>This paper aims to explore questions like these by modeling who we would expect the average quarterback to throw to given a game situation. By contextualizing throwing decisions, we can determine which players deviate from our expectations the most, if this deviation leads to stronger or weaker performances, and provide better nuance to assess throwing players. for particularly harmful interceptions, we can contextualize the decision by determining whether other quarterbacks would make that same decision.</p>
 <section id="data" class="level3">
 <h3 class="anchored" data-anchor-id="data">Data</h3>
 <p>In modeling this decision-making process, this work uses tracking and event data from the 2024 Big Data Bowl,<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> which covers players from the first 9 weeks of the 2022 NFL Season.</p>
 <div class="text-center">
 <p><img src="Assets/Slides_Assets/highWP.gif"></p>
 </div>
-<p>From this dataset, we can use four different subtypes of data:</p>
+<p>Within this dataset, there are four different subtypes of data:</p>
 <ul>
-<li><p><strong>Game and Play Data:</strong> Data which describes information about the game and play, such as the teams and players involved, the score, and the result of the play.</p></li>
-<li><p><strong>Player Play Data:</strong> Data describing statistics for each player for a play, such as what route was ran by the player or an indicator describing if the player was targetted for a throw.</p></li>
-<li><p><strong>Tracking Data:</strong> Data describing the locations of players and the football at every frame of a play</p></li>
+<li><p><strong>Game Data:</strong> Data which describes information about the such as the teams playing, date and time of the game, and final scorelines.</p></li>
+<li><p><strong>Play Data:</strong> Data describing the context and result of each play within each game, including the quarter, down, yards to go, pre-snap win probabilities, and formations.</p></li>
+<li><p><strong>Player Play Data:</strong> Data describing statistics for each player involved in a play, such as what route was ran by the player or an indicator describing if the player was targeted for a throw.</p></li>
+<li><p><strong>Tracking Data:</strong> Data describing the locations of players and the football at every frame of a play, including xy coordinates, player orientation, movement speed, and direction.</p></li>
 </ul>
 <p>In this analysis, we exclusively look at throwing plays with an obvious target, removing spikes and throwaways.</p>
 </section>
 </section>
 <section id="methodology" class="level2">
 <h2 class="anchored" data-anchor-id="methodology">Methodology</h2>
-<p>In following approaches to similar problems in soccer,<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> we treat the problem of expected receiver as a learning-to-rank problem(LTR), where we build a model to generate a relative ranking for all receivers. This ranking approach allows us to take into account the other receivers when predicting likely receiver. A receiver may be wide open, but if another receiver is a much stronger option, the ranking approach will be able to take this difference into context.</p>
-<p>On other hand, a classification approach would treat every recipient as an independent entry, disregarding other receivers. While this effect can be mitigating by applying a softmax normalization to the receivers of a play, it is preferred to ensure that the model accounts for other receivers when predicting expected receiver.</p>
-<p>While this problem has been approached with a deep learning method<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a>, we look to use XGBoost with hand-crafted features to derive these rankings, as we aim to build a model on newer tracking data with similar prediction power, and a less computationally expensive and interpretable approach.</p>
+<p>In following approaches to similar problems in soccer,<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> we treat the problem of expected receiver as a learning-to-rank problem (LTR), building a model to generate a relative ranking for all receivers over the course of a play. This ranking approach allows us to take into account the other receivers when predicting most-likely receiver. A receiver may be wide open, but if another receiver is a much stronger option, the ranking approach will be able to take this difference into context.</p>
+<p>On the other hand, a classification approach treats every recipient as an independent entry, disregarding other receivers. While this effect can be mitigated by applying a softmax normalization to the receivers of a play, we chose to pursue a ranking model to better account for other receivers when predicting who the ball is going to.</p>
+<p>While this problem has been broached with a deep learning method<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a>, we intend to use XGBoost with dozens of hand-crafted features to derive these rankings, aiming to build a model with similar prediction power with newer tracking data and a less computationally expensive approach. This also allows us to have more interpretable results, opening our work up to a broader audiences and discussions.</p>
 <section id="the-obvious-first-answer-spacing" class="level3">
 <h3 class="anchored" data-anchor-id="the-obvious-first-answer-spacing">The Obvious First Answer: Spacing</h3>
-<p>An obvious initial answer to finding expected receiver is simply taking the receiver that is the most open at the time of throw. While this has some predictive power, with 31.6% of throws going to the player who is furthest from their closest defender, compared to the 20% naive baseline, this spacing at throw still tells a relatively incomplete story.</p>
+<p>An obvious initial answer to finding expected receiver is simply taking the receiver that is the most open at the time of throw. While this has some predictive power, with 31.6% of throws going to the player who is furthest from their closest defender, compared to the 20% baseline (guessing out of 5 at random), this spacing at throw still tells a relatively incomplete story.</p>
 <div class="text-center">
 <p><img src="Assets/Slides_Assets/dadamsthrow.gif" width="600"></p>
 </div>
@@ -155,17 +156,20 @@ window.Quarto = {
 </div>
 <p>By adding speed and orientation, this distance correlates stronger with separation at catch, generating a correlation of 0.811 as compared to the correlation with current separation and catch separation, with a correlation of 0.73.</p>
 </section>
-<section id="a-proxy-for-qb-information" class="level3">
-<h3 class="anchored" data-anchor-id="a-proxy-for-qb-information">A Proxy for QB Information</h3>
-<p>Zach you should probably take this one</p>
+<section id="a-proxy-for-qb-information-qb-vision" class="level3">
+<h3 class="anchored" data-anchor-id="a-proxy-for-qb-information-qb-vision">A Proxy for QB Information: QB Vision</h3>
+<p>It’s no secret that where the quarterback is looking plays a huge part in his decision making process, and therefore in predicting where he’ll be throwing. It was crucial to our model’s completeness, therefore, to develop some way to diagnose where the QB is looking in relation to the various passing options.</p>
+<div class="text-center">
+<p><img src="Assets/Slides_Assets/vision_example.gif" width="800"> <img src="Assets/Slides_Assets/Angle_diff_Histogram.png" height="300"></p>
+</div>
 </section>
 <section id="final-feature-set" class="level3">
 <h3 class="anchored" data-anchor-id="final-feature-set">Final Feature Set</h3>
 <p>In conjunction with these two metrics, we derive a feature set which captures the game-state in three categories: the receiver, the quarterback, and the game context.</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 23%">
-<col style="width: 76%">
+<col style="width: 50%">
+<col style="width: 50%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -201,7 +205,7 @@ window.Quarto = {
 <div class="text-center">
 <p><img src="Assets/Slides_Assets/PJMoorePredictions.png" width="500" style="display: inline-block; margin-right: 10px;"> <img src="Assets/Slides_Assets/moore_throw_rankings.png" width="200" style="display: inline-block;"></p>
 </div>
-<p>We see that the expected receiver is Stephen Sullivan, where a reception could keep the drive going and gain strong yardage, while the actual receiver, D.J. Moore is ranked the 2nd most likely receiver. Therefore, we can infer that the D.J. Moore throw is not the expected choice and that other quarterbacks would have likely played it safer and made the throw to Sullivan.</p>
+<p>We see that the expected receiver is Stephen Sullivan, where a reception could keep the drive going and gain strong yardage, while the actual receiver, D.J. Moore is ranked the 2nd most likely receiver. Therefore, we can infer that the throw by P.J. Walker is not the expected choice and that other quarterbacks would have likely played it safer and made the throw to Sullivan.</p>
 </section>
 <section id="finding-the-most-predictable-and-unpredictable-quarterbacks" class="level3">
 <h3 class="anchored" data-anchor-id="finding-the-most-predictable-and-unpredictable-quarterbacks">Finding the Most Predictable and Unpredictable Quarterbacks</h3>
@@ -219,7 +223,7 @@ window.Quarto = {
 <p><img src="Assets/Slides_Assets/QBClustering_nt.png" width="600"></p>
 </div>
 <p>In this comparison, we see players like Teddy Bridgewater and Marcus Mariota, who gain significantly more yardage and are more accurate when throwing to the expected receiver, indicating that they may benefit from throwing more to the expected receiver.</p>
-<p>On the other hand, players like Jameis Winston and PJ Walker are finding more yardage with more unconventional throws, indicating that they are finding success with these atypical passes. However, since we are looking at YPA, interceptions and incompletions are essentially treated the same, so this approach may be overvaluing players who make very risky throws that are more likely to get intercepted.</p>
+<p>On the other hand, players like Jameis Winston and P.J. Walker are finding more yardage with more unconventional throws, indicating that they are finding success with these atypical passes. However, since we are looking at YPA, interceptions and incompletions are essentially treated the same, so this approach may be overvaluing players who make very risky throws that are more likely to get intercepted.</p>
 <p>In addition, like the predictability of our quarterbacks, the players will inherently face different situations, so certain players may not have as many opportunities to have receivers which are strong options but might not be the obvious choice.</p>
 </section>
 <section id="model-feature-importance" class="level3">
@@ -242,7 +246,7 @@ window.Quarto = {
 </section>
 <section id="acknowledgements" class="level2">
 <h2 class="anchored" data-anchor-id="acknowledgements">Acknowledgements</h2>
-<p>We would like to thank Quang Nguyen, Dr.&nbsp;Ron Yurko, and our outside sponsor, Dr.&nbsp;Karim Kassam for their guidance and input for this work. In addition, thank you to the Carnegie Mellon Statistics Department for providing the opportunity and resources to conduct research throughout the summer.</p>
+<p>We would like to thank Quang Nguyen, Dr.&nbsp;Ron Yurko, and our outside sponsor, Dr.&nbsp;Karim Kassam and Teamworks for their guidance and input for this work. In addition, thank you to the Carnegie Mellon Statistics Department for providing the opportunity and resources to conduct research throughout the summer.</p>
 </section>
 
 

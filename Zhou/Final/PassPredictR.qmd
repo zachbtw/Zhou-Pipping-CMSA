@@ -87,7 +87,8 @@ format:
 :::::
 
 ## Deriving QB Line of Sight Prior to Throw
-<img src="Assets/Slides_Assets/Los_wr.png"/>
+<img src="Assets/Slides_Assets/vision_example.gif"/>
+
 
 ## Methodology
 
@@ -184,4 +185,19 @@ format:
 
 ## Appendix B - Variable Importance
 
+::: {style="text-align: center;"}
 <img src="Assets/Slides_Assets/vip_plot.png"/>
+:::
+
+
+## Appendix C - Example for Vision Features
+
+::: {style="text-align: center;"}
+<img src="Assets/Slides_Assets/Los_wr.png"/>
+:::
+
+## Appendix D - Optimal QB Vision Derivation
+::: {style="text-align: center;"}
+<img src="Assets/Slides_Assets/Angle_diff_Histogram.png"/>
+:::
+
