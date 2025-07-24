@@ -1,0 +1,168 @@
+---
+title: "PassPredictR: Contextualizing NFL Throwing Decisions By Modeling Receiver Choice"
+author:   
+  - name: Lou Zhou
+    email: lz80@rice.edu
+    url: lou-zhou.github.io
+    affiliations:
+      - name: Rice University
+  - name: Zachary Pipping
+    email: zrpipping@gmail.com
+    url: zachbtw.github.io
+    affiliations:
+      - name: University of Florida
+format: html
+editor: visual
+---
+
+## Introduction
+
+The most important decision made by a quarterback during a throwing play in football is the throw target. In the same play, a throw to one receiver may lead to a game-winning touchdown, but a throw to another receiver could cause an interception going the other way. We can see this decision-making process in a game-tying DJ Moore touchdown throw against the Atlanta Falcons.
+
+:::{.text-center}
+<img src="Assets/Slides_Assets/DJ_MOORE_TIES_THE_GAME.gif" />
+:::
+
+While a fantastic throw and catch, with 20 seconds left, DJ Moore still has the option to throw to a closer receiver and quickly get out of bounds to gain yardage. With this safer choice, what would we expect other quarterbacks to do in this situation? Would they play it safer and throw to the closer man, or would they throw it down the field into double coverage for a game-tying touchdown, risking a game-losing interception? 
+
+This paper aims to explore questions like these by modeling what we would expect the average quarterback given a game situation. By contextualizing throwing decisions, we can determine which players deviate from this expectation the most and if this deviation leads to stronger or weaker performance as well as provide better nuance to throwing players; for particularly harmful interceptions, we can contextualize the decision by determining whether other quarterbacks would make that same decision.
+
+### Data
+
+In modeling this decision-making process, this work uses tracking and event data from the 2024 Big Data Bowl,[^1] which covers players from the first 9 weeks of the 2022 NFL Season. 
+
+:::{.text-center}
+<img src="Assets/Slides_Assets/highWP.gif" />
+:::
+
+
+From this dataset, we can use four different subtypes of data:
+
+- **Game and Play Data:** Data which describes information about the game and play, such as the teams and players involved, the score, and the result of the play.
+
+- **Player Play Data:** Data describing statistics for each player for a play, such as what route was ran by the player or an indicator describing if the player was targetted for a throw.
+
+- **Tracking Data:** Data describing the locations of players and the football at every frame of a play
+
+In this analysis, we exclusively look at throwing plays with an obvious target, removing spikes and throwaways.
+
+## Methodology
+
+In following approaches to similar problems in soccer,[^2] we treat the problem of expected receiver as a learning-to-rank problem(LTR), where we build a model to generate a relative ranking for all receivers. This ranking approach allows us to take into account the other receivers when predicting likely receiver. A receiver may be wide open, but if another receiver is a much stronger option, the ranking approach will be able to take this difference into context. 
+
+On other hand, a classification approach would treat every recipient as an independent entry, disregarding other receivers. While this effect can be mitigating by applying a softmax normalization to the receivers of a play, it is preferred to ensure that the model accounts for other receivers when predicting expected receiver.
+
+While this problem has been approached with a deep learning method[^3], we look to use XGBoost with hand-crafted features to derive these rankings, as we aim to build a model on newer tracking data with similar prediction power, and a less computationally expensive and interpretable approach.
+
+### The Obvious First Answer: Spacing
+
+An obvious initial answer to finding expected receiver is simply taking the receiver that is the most open at the time of throw. While this has some predictive power, with 31.6\% of throws going to the player who is furthest from their closest defender, compared to the 20\% naive baseline, this spacing at throw still tells a relatively incomplete story. 
+
+:::{.text-center}
+<img src="Assets/Slides_Assets/dadamsthrow.gif" width="600" />
+:::
+
+As exemplified by this throw, Davante Adams is well covered at the time of pass release, but because of speed and direction differences with his closest defender, he is able to find separation by the time the catch is made. It is often the potential to find space at time of catch that is more important than space at time of throw. 
+
+Therefore, to derive a proxy for space at reception, we account for the speed and direction of a player at time of throw, deriving a distance between a receiver and a defender with the speed vectors.
+
+
+
+:::{.text-center}
+<img src="Assets/Slides_Assets/speedVect.png" width="400" style="display: inline-block; margin-right: 10px;" />
+<img src="Assets/Slides_Assets/corr_plot.png" width="300" style="display: inline-block;" />
+:::
+
+By adding speed and orientation, this distance correlates stronger with separation at catch, generating a correlation of 0.811 as compared to the correlation with current separation and catch separation, with a correlation of 0.73.
+
+### A Proxy for QB Information
+
+Zach you should probably take this one
+
+### Final Feature Set
+
+In conjunction with these two metrics, we derive a feature set which captures the game-state in three categories: the receiver, the quarterback, and the game context.
+
+| Feature Category | Features |
+|-----------------|-------------------------------------------------------|
+| **Recipient Features** | \- *Distance (x, y, magnitude)\** <br> - *Speed Differences (x, y, magnitude)\** <br> - *Orientation Differences\** <br> - *Speed Vector Differences\** <br> - Receiver Position <br> - First Down Indicator <br> - Number of Defenders in 5 Yard Radius Facing Receiver Movement<br> - Angle between QB Orientation and Receiver 5 Frames Prior <br>  |
+| **Quarterback Features** | \- Distance from Receiver <br> - Movement Vector <br> - Under Pressure Indicator |
+| **Game Context** | \- Quarter <br> - Down and Distance <br> - Score Differential <br> - Time Remaining |
+
+<br>*\*Feature taken relative to the top-3 closest defenders*
+
+Using these features, we build an XGBoost ranking model where we use a random search hyperparameter tuning approach, validated using 5-fold cross validation, with folds along games, which yields a top-1 accuracy of 59.9 $\pm$ 0.5%, significantly stronger than both a naive estimate(20%) as well as the separation based approach(31.6%). Additionally, given the inherent variability in quarterback decision-making as well as defenses looking to prioritizing preventing an obvious open receiver, this accuracy reflects strong model performance.
+
+## Results
+
+In applying this model, we illustrate potential use cases for our model in analyzing quarterbacks. However, for future usage, work should be done in predicting the utility of potential receivers, allowing decision analysis to be done in lieu of what the optimal throwing decision should be. We believe that this model can and should be used beyond the simple point estimates we generate here.
+
+### Expected Target for the DJ Moore Throw
+
+We can then apply our model back to the DJ Moore throw to determine the expected target, given the game state:
+
+:::{.text-center}
+<img src="Assets/Slides_Assets/PJMoorePredictions.png" width="500" style="display: inline-block; margin-right: 10px;" />
+<img src="Assets/Slides_Assets/moore_throw_rankings.png" width="200" style="display: inline-block;" />
+:::
+
+We see that the expected receiver is Stephen Sullivan, where a reception could keep the drive going and gain strong yardage, while the actual receiver, D.J. Moore is ranked the 2nd most likely receiver. Therefore, we can infer that the D.J. Moore throw is not the expected choice and that other quarterbacks would have likely played it safer and made the throw to Sullivan.
+
+### Finding the Most Predictable and Unpredictable Quarterbacks
+
+Using our model, we can also derive estimations for how predictable or unpredictable a quarterback is by finding the proportion of times they agree with the model choice. 
+
+
+:::{.text-center}
+<img src="Assets/Slides_Assets/MostUnPredictable.png" width="300" style="display: inline-block; margin-right: 10px;" />
+<img src="Assets/Slides_Assets/MostPredictable.png" width="300" style="display: inline-block;" />
+:::
+
+In applying the eye-test, we see that Jameis Winston, a quarterback infamous for playing in a very erratic and unpredictable manner, being the quarterback with the second lowest proportion of throws agreeing with the model. We also see Miami quarterback Tua Tagovailoa agreeing with the model the least; this disagreement could be due to the fact that Tagovailoa is the only left handed quarterback in the league, causing his decisions to be harder to model, with the rest of the league being right-handed.
+
+Looking at the most predictable players, we see players like Tannehill and Ryan, who are moreso known at this stage of their careers for making safer, more conservative throws. However, we should note that this is a simple estimate as quarterbacks will inherently face different situations, so some players will not have the same opportunities to target more uncommon receivers as there might not be any other viable candidates.
+
+### Identifying Potential Opportunities for Optimization
+
+By comparing YPA and completion rate for throws following the expected target and throws to other receivers, we can identify players who may benefit from throwing more conventional throws.
+
+:::{.text-center}
+<img src="Assets/Slides_Assets/QBClustering_nt.png" width="600" />
+:::
+
+In this comparison, we see players like Teddy Bridgewater and Marcus Mariota, who gain significantly more yardage and are more accurate when throwing to the expected receiver, indicating that they may benefit from throwing more to the expected receiver.
+
+On the other hand, players like Jameis Winston and PJ Walker are finding more yardage with more unconventional throws, indicating that they are finding success with these atypical passes. However, since we are looking at YPA, interceptions and incompletions are essentially treated the same, so this approach may be overvaluing players who make very risky throws that are more likely to get intercepted.
+
+In addition, like the predictability of our quarterbacks, the players will inherently face different situations, so certain players may not have as many opportunities to have receivers which are strong options but might not be the obvious choice.
+
+### Model Feature Importance
+
+:::{.text-center}
+<img src="Assets/Slides_Assets/vip_plot.png" width="600" />
+:::
+
+In looking at feature importance, we see that the movement direction of the quarterback as well as the line of sight 5 frames prior are the most importance factor in deciding the expected receiver. Given that cross-body throws are generally discouraged, this importance of the movement direction is expected. In looking at the quarterback line of sight, this importance is also to be expected as it reflects the information the quarterback has by what he sees. If the quarterback is not actively aware of a certain receiver, he will almost never target him.
+
+## Discussion
+Given the importance of the decision to target a quarterback, we contextualize the decisions behind these throws by building a ranking model using XGBoost on hand-craft features like speed velocity difference and derivations from line of sight, generating a model accuracy of 59.9%, significantly stronger than both the naive baseline(20%) as well as throws to the most open receiver at time of throw(31.6%). Through this model, we are able to derive a number of metrics surrounding the decision-making ability of a quarterback, such as point estimates for the predictability of a quarterback as well as finding opportunities for potential improvement in decision-making.
+
+### Limitations and Future Work
+
+There are still a strong number of opportunities to add more features and refine the model. For example, it may be worth looking into receiver skill as a decision, as quarterbacks are more likely to throw to their number one receiver. We also only use a binary estimate for pressure, while future work should expand and add nuance to what the pressure actually looked like. Likewise, future work should consider pre-snap factors like coverage mismatches to update target probabilities during a throw
+
+In our applications of the model with our derivations of predictability and quarterback optimization, the differences in situations that quarterbacks will face will inherently add bias to these point estimates, so future work should account for the quality of the other decisions. 
+
+We believe that this model can be used with other factors to generate stronger estimates of quarterback decision-making ability. For example, if a quarterback was constantly making the optimal play in terms of expected yardage but these targets are not the expected target, like a similar approach in soccer[^4], we can generate a proxy for this quarterback's ability to find strong, hard to find throws.
+
+## Acknowledgements
+
+We would like to thank Quang Nguyen, Dr. Ron Yurko, and our outside sponsor, Dr. Karim Kassam for their guidance and input for this work. In addition, thank you to the Carnegie Mellon Statistics Department for providing the opportunity and resources to conduct research throughout the summer.
+
+[^1]: Michael Lopez, Thompson Bliss, Ally Blake, Andrew Patton, Jonathan McWilliams, Addison Howard, and Will Cukierski. NFL Big Data Bowl 2024. https://kaggle.com/competitions/nfl-big-data-bowl-2024, 2023. Kaggle.
+
+[^2]: Li, Heng & Zhang, Zhiying. (2019). Predicting the Receivers of Football Passes. 10.1007/978-3-030-17274-9_15.
+
+[^3]: Burke, Brian. “DeepQB: Deep Learning with Player Tracking to Quantify Quarterback Decision-Making & Performance.” MIT Sloan Sports Analytics Conference, 1 Mar. 2019.
+
+[^4]: Pieter Robberechts, Maaike Van Roy, and Jesse Davis. 2023. Un-xPass: Measuring Soccer Player's Creativity. In Proceedings of the 29th ACM SIGKDD Conference on Knowledge Discovery and Data Mining (KDD '23). Association for Computing Machinery, New York, NY, USA, 4768–4777. https://doi.org/10.1145/3580305.3599924

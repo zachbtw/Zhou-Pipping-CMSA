@@ -105,11 +105,11 @@ format:
 
 | Feature Category | Features |
 |-----------------|-------------------------------------------------------|
-| **Recipient Features** | \- *Distance (x, y, magnitude)* <br> - *Speed Differences (x, y, magnitude)* <br> - *Orientation Differences* <br> - *Speed Vector Differences* <br> - Receiver Position <br> - First Down Indicator <br> - Number of Defenders in 5 Yard Radius Facing Receiver Movement<br> - Angle between QB Orientation and Receiver 5 Frames Prior <br>  |
+| **Recipient Features** | \- *Distance (x, y, magnitude)\** <br> - *Speed Differences (x, y, magnitude)\** <br> - *Orientation Differences\** <br> - *Speed Vector Differences\** <br> - Receiver Position <br> - First Down Indicator <br> - Number of Defenders in 5 Yard Radius Facing Receiver Movement<br> - Angle between QB Orientation and Receiver 5 Frames Prior <br>  |
 | **Quarterback Features** | \- Distance from Receiver <br> - Movement Vector <br> - Under Pressure Indicator |
 | **Game Context** | \- Quarter <br> - Down and Distance <br> - Score Differential <br> - Time Remaining |
 
-<br><br>*Feature taken relative to the top-3 closest defenders*
+<br><br>*\*Feature taken relative to the top-3 closest defenders*
 
 ## For P.J. Walker, The Expected Play is the Safe Play
 
