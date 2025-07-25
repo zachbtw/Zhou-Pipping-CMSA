@@ -106,7 +106,7 @@ format:
 
 | Feature Category | Features |
 |-----------------|-------------------------------------------------------|
-| **Recipient Features** | \- *Distance (x, y, magnitude)\** <br> - *Speed Differences (x, y, magnitude)\** <br> - *Orientation Differences\** <br> - *Speed Vector Distance\** <br> - Receiver Position <br> - First Down Indicator <br> - Number of Defenders in 5 Yard Radius Facing Receiver Movement<br> - Angle between QB Orientation and Receiver 5 Frames Prior <br>  |
+| **Recipient Features** | \- *Distance (x, y, magnitude)\** <br> - *Speed Differences (x, y, magnitude)\** <br> - *Orientation Differences\** <br> - *Speed Vector Distance\** <br> - Receiver Position <br> - First Down Indicator <br> - Number of Defenders in Route-Runner's "Next 5 Yards"<br> - Angle between QB Orientation and Receiver 5 Frames Prior <br>  |
 | **Quarterback Features** | \- Distance from Receiver <br> - Movement Vector <br> - Under Pressure Indicator |
 | **Game Context** | \- Quarter <br> - Down and Distance <br> - Score Differential <br> - Time Remaining |
 

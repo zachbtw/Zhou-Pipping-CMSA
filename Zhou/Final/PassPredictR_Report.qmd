@@ -17,7 +17,7 @@ editor: visual
 
 ## Introduction
 
-in football, the most important decision made by a quarterback during a throwing play is the throw target. In the same play, deciding to throw to one receiver may lead to a game-altering touchdown, and a throw to another receiver may result in a game-ending turnover. We can see this decision-making process in a game-tying touchdown throw from P.J. Walker to D.J. Moore against the Atlanta Falcons.
+In football, the most important decision made by a quarterback during a throwing play is the throw target. In the same play, deciding to throw to one receiver may lead to a game-altering touchdown, and a throw to another receiver may result in a game-ending turnover. We can see this decision-making process in a game-tying touchdown throw from P.J. Walker to D.J. Moore against the Atlanta Falcons.
 
 ::: text-center
 <img src="Assets/Slides_Assets/DJ_MOORE_TIES_THE_GAME.gif"/>
